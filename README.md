@@ -139,4 +139,4 @@ npm run dev
 
 **Santino Martinez Merli**
 Estudiante de Analista en Sistemas — ORT Argentina
-[LinkedIn](https://linkedin.com/in/tu-usuario) · [GitHub](https://github.com/santinomartinezmerli)
+[LinkedIn](https://www.linkedin.com/in/santino-mart%C3%ADnez-merli-683473214/) · [GitHub](https://github.com/santinomartinezmerli)
