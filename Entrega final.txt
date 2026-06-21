@@ -1,0 +1,9 @@
+Link del repositorio: https://github.com/LautaroArtecona/TrabajoFinalTP2
+Link de Vercel: https://trabajo-final-tp-2.vercel.app/docs
+
+Integrantes:
+
+Lautaro Artecona
+Santino Martinez Merli
+Andrea Massun Sovic
+Juan Cruz Onorato Estrada
