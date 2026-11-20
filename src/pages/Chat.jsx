@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
+import { compressImage } from '../lib/compressImage'
 import Avatar from '../components/Avatar'
 import { SkeletonChat } from '../components/Skeleton'
 
@@ -118,15 +119,30 @@ function Chat() {
       setUploading(true)
       setUploadError(null)
 
-      for (const photo of photos) {
-        const ext = photo.file.name.split('.').pop()
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i]
+
+        let file
+        try {
+          file = await compressImage(photo.file)
+        } catch (err) {
+          setUploadError(err.message)
+          setPendingPhotos(photos.slice(i)) // give back what was not sent yet
+          setNewMessage(text)
+          setUploading(false)
+          return
+        }
+
+        const ext = file.name.split('.').pop()
         const filename = `chat-${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
         const { error: uploadError } = await supabase.storage
           .from('chat')
-          .upload(filename, photo.file)
+          .upload(filename, file)
 
         if (uploadError) {
           setUploadError(uploadError.message)
+          setPendingPhotos(photos.slice(i))
+          setNewMessage(text)
           setUploading(false)
           return
         }
