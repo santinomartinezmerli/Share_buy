@@ -256,7 +256,7 @@ function Explore() {
               >
                 <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate(`/post/${post.id}`)} className="w-full h-full active:opacity-80 transition-opacity">
                   {(post.image_urls?.[0] || post.image_url) ? (
-                    <img src={post.image_urls?.[0] ?? post.image_url} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                    <img src={post.image_urls?.[0] ?? post.image_url} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" alt="" loading="lazy" decoding="async" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl bg-green-50 dark:bg-green-900/20">🛍️</div>
                   )}

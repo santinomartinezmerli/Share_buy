@@ -111,7 +111,7 @@ function ImageCarousel({ images, brand, className = '' }) {
         {urls.map((url, i) => (
           <div key={i} className="w-full flex-shrink-0">
             <div className="aspect-square bg-gray-50 relative overflow-hidden">
-              <img src={url} className="w-full h-full object-cover" alt="" draggable={false} />
+              <img src={url} className="w-full h-full object-cover" alt="" draggable={false} loading="lazy" decoding="async" />
             </div>
           </div>
         ))}
