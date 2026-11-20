@@ -25,7 +25,7 @@ function EditProfile() {
         .from('profiles')
         .select('username, bio, avatar_url')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
 
       if (data) {
         setForm({ username: data.username ?? '', bio: data.bio ?? '' })

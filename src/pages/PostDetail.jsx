@@ -36,7 +36,7 @@ function PostDetail() {
           .from('posts')
           .select('*, profiles(username, avatar_url)')
           .eq('id', postId)
-          .single()
+          .maybeSingle()
         setPost(postData)
       }
 

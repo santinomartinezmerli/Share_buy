@@ -20,7 +20,7 @@ function Profile() {
     if (!userId) return
     const fetchProfile = async () => {
       const { data: profileData } = await supabase
-        .from('profiles').select('*').eq('id', userId).single()
+        .from('profiles').select('*').eq('id', userId).maybeSingle()
 
       const { data: postsData } = await supabase
         .from('posts').select('*').eq('user_id', userId)

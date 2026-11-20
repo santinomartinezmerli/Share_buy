@@ -25,7 +25,7 @@ function EditPost() {
         .from('posts')
         .select('*')
         .eq('id', postId)
-        .single()
+        .maybeSingle()
 
       if (data) {
         setForm({

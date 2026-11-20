@@ -41,7 +41,7 @@ function Chat() {
         .from('conversations')
         .select('*, user1:user1_id(id, username, avatar_url), user2:user2_id(id, username, avatar_url)')
         .eq('id', conversationId)
-        .single()
+        .maybeSingle()
 
       if (conv) {
         setOtherUser(conv.user1_id === userId ? conv.user2 : conv.user1)

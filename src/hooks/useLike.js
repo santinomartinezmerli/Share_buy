@@ -11,7 +11,7 @@ export function useLike(postId, userId) {
     const fetchLikes = async () => {
       const [{ count }, { data: userLike }] = await Promise.all([
         supabase.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', postId),
-        supabase.from('likes').select('id').eq('post_id', postId).eq('user_id', userId).single()
+        supabase.from('likes').select('id').eq('post_id', postId).eq('user_id', userId).maybeSingle()
       ])
       setLikesCount(count ?? 0)
       setLiked(!!userLike)
