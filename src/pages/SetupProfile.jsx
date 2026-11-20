@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { compressImage, MAX_AVATAR_SIZE } from '../lib/compressImage'
 
 function SetupProfile() {
-  const navigate = useNavigate()
   const { userId, user } = useUser()
   const [username, setUsername] = useState('')
   const [bio, setBio] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [suggestedUsers, setSuggestedUsers] = useState([])
@@ -17,7 +15,6 @@ function SetupProfile() {
   const [step, setStep] = useState('profile')
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
-  const fileInputRef = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {

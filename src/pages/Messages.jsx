@@ -41,7 +41,7 @@ function Messages() {
         .in('conversation_id', convIds).order('created_at', { ascending: false }).limit(1000)
 
       let lastRead = {}
-      try { lastRead = JSON.parse(localStorage.getItem('chatLastRead') || '{}') } catch (e) {}
+      try { lastRead = JSON.parse(localStorage.getItem('chatLastRead') || '{}') } catch { /* ignore a malformed localStorage value */ }
       const seenConv = new Set()
 
       for (const msg of allMsgs ?? []) {
@@ -65,6 +65,7 @@ function Messages() {
   }, [userId])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount; reworked in phases 4-5
     fetchData()
     const onVisible = () => { if (!document.hidden) fetchData() }
     document.addEventListener('visibilitychange', onVisible)

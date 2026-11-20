@@ -15,6 +15,7 @@ function CommentSheet({ postId, currentUserId, onClose }) {
   const inputRef = useRef(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount animation + fetch; reworked with TanStack Query in phase 4
     setVisible(true)
     const fetch = async () => {
       const { data } = await supabase

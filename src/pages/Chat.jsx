@@ -22,7 +22,7 @@ function Chat() {
   const [deletingMsgId, setDeletingMsgId] = useState(null)
   const [typing, setTyping] = useState(false)
   const [otherTyping, setOtherTyping] = useState(false)
-  const [readMap, setReadMap] = useState({})
+  const [, setReadMap] = useState({})
   const fileInputRef = useRef(null)
   const typingTimeoutRef = useRef(null)
 

@@ -55,6 +55,7 @@ function Layout({ children }) {
   }, [user])
 
   // Re-fetch unread count on every navigation (so badge updates after viewing a chat)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on navigation; replaced by unread_count() RPC in phase 6
   useEffect(() => { fetchUnread() }, [location, fetchUnread])
 
   // Real-time subscription for new messages

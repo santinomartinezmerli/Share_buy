@@ -50,6 +50,7 @@ function App() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on session change; reworked in phase 2
     if (session) checkProfile(session.user)
   }, [session])
 
