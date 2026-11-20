@@ -1,23 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function useLike(postId, userId) {
-  const [liked, setLiked] = useState(false)
-  const [likesCount, setLikesCount] = useState(0)
+// initialLiked / initialCount come from get_feed (liked_by_me, like_count), so the hook
+// no longer makes its own count + "did I like it" requests per post.
+export function useLike(postId, userId, initialLiked = false, initialCount = 0) {
+  const [liked, setLiked] = useState(initialLiked)
+  const [likesCount, setLikesCount] = useState(initialCount)
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!userId) return
-    const fetchLikes = async () => {
-      const [{ count }, { data: userLike }] = await Promise.all([
-        supabase.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', postId),
-        supabase.from('likes').select('id').eq('post_id', postId).eq('user_id', userId).maybeSingle()
-      ])
-      setLikesCount(count ?? 0)
-      setLiked(!!userLike)
-    }
-    fetchLikes()
-  }, [postId, userId])
 
   const toggleLike = useCallback(async () => {
     if (!userId || loading) return

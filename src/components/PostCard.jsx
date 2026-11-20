@@ -7,8 +7,8 @@ import { useSave } from '../hooks/useSave'
 
 function PostCard({ post, currentUserId, onCommentClick }) {
   const navigate = useNavigate()
-  const { liked, likesCount, toggleLike } = useLike(post.id, currentUserId)
-  const { saved, toggleSave } = useSave(post.id, currentUserId)
+  const { liked, likesCount, toggleLike } = useLike(post.id, currentUserId, post.liked_by_me ?? false, post.like_count ?? 0)
+  const { saved, toggleSave } = useSave(post.id, currentUserId, post.saved_by_me ?? false)
 
   const imageUrls = (post.image_urls && post.image_urls.length > 0)
     ? post.image_urls

@@ -1,23 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
-export function useSave(postId, userId) {
-  const [saved, setSaved] = useState(false)
+// initialSaved comes from get_feed (saved_by_me), so the hook no longer makes its own
+// request per post.
+export function useSave(postId, userId, initialSaved = false) {
+  const [saved, setSaved] = useState(initialSaved)
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!userId) return
-    const fetchSaved = async () => {
-      const { data } = await supabase
-        .from('saves')
-        .select('id')
-        .eq('post_id', postId)
-        .eq('user_id', userId)
-        .maybeSingle()
-      setSaved(!!data)
-    }
-    fetchSaved()
-  }, [postId, userId])
 
   const toggleSave = useCallback(async (e) => {
     if (e) e.stopPropagation()

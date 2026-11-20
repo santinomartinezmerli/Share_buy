@@ -1,31 +1,24 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 const PAGE_SIZE = 10
 
-async function fetchFeedIds(userId) {
-  if (!userId) return { ids: [], blockedIds: new Set() }
-  const [followsData, blockedData] = await Promise.all([
-    supabase.from('follows').select('following_id').eq('follower_id', userId),
-    supabase.from('blocked_users').select('blocked_id').eq('blocker_id', userId)
-  ])
-  const blockedIds = new Set(blockedData.data?.map(b => b.blocked_id) ?? [])
-  const followingIds = (followsData.data?.map(f => f.following_id) ?? []).filter(id => !blockedIds.has(id))
-  const ids = [userId, ...followingIds]
-  return { ids, blockedIds }
-}
-
-async function fetchPostsPage(ids, page) {
-  const from = page * PAGE_SIZE
-  const to = from + PAGE_SIZE - 1
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*, profiles(username, avatar_url)')
-    .in('user_id', ids)
-    .order('created_at', { ascending: false })
-    .range(from, to)
+// One request per page: the get_feed RPC (supabase/migrations/002_get_feed.sql) already
+// applies follows/blocked filtering and returns the author profile, like_count,
+// liked_by_me and saved_by_me. has_more comes back on every row; the server fetches
+// PAGE_SIZE + 1 internally, so a page that ends exactly on the last post is detected.
+//
+// The cursor is the last post's (created_at, id). created_at is passed back as the
+// original ISO string, not a Date, so no microseconds are lost.
+async function fetchFeedPage(cursor) {
+  const { data, error } = await supabase.rpc('get_feed', {
+    p_limit: PAGE_SIZE,
+    p_cursor_created_at: cursor?.created_at ?? null,
+    p_cursor_id: cursor?.id ?? null,
+  })
   if (error) throw error
-  return data ?? []
+  const rows = data ?? []
+  return { rows, hasMore: rows[0]?.has_more ?? false }
 }
 
 export function useFeed(userId) {
@@ -33,58 +26,51 @@ export function useFeed(userId) {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
-  const [page, setPage] = useState(0)
-  const idsRef = useRef([])
-
-  const loadPage = useCallback(async (pageIndex, append = false) => {
-    const ids = idsRef.current
-    if (!ids.length) return []
-    const data = await fetchPostsPage(ids, pageIndex)
-    if (append) {
-      setPosts(prev => [...prev, ...data])
-    } else {
-      setPosts(data)
-    }
-    setHasMore(data.length >= PAGE_SIZE)
-    return data
-  }, [])
 
   const refreshFeed = useCallback(async () => {
     if (!userId) return
     setLoading(true)
-    const { ids } = await fetchFeedIds(userId)
-    idsRef.current = ids
-    await loadPage(0, false)
-    setPage(1)
+    try {
+      const { rows, hasMore: more } = await fetchFeedPage(null)
+      setPosts(rows)
+      setHasMore(more)
+    } catch (err) {
+      console.error('Feed refresh failed:', err)
+    }
     setLoading(false)
-  }, [userId, loadPage])
+  }, [userId])
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || !userId) return
+    const last = posts[posts.length - 1]
+    if (!last) return
     setLoadingMore(true)
-    const data = await loadPage(page, true)
-    if (data.length > 0) {
-      setPage(prev => prev + 1)
-    } else {
+    try {
+      const { rows, hasMore: more } = await fetchFeedPage({ created_at: last.created_at, id: last.id })
+      setPosts(prev => [...prev, ...rows])
+      setHasMore(more)
+    } catch (err) {
+      // Stop paginating instead of retrying in a loop (the scroll observer would re-fire).
+      console.error('Feed loadMore failed:', err)
       setHasMore(false)
     }
     setLoadingMore(false)
-  }, [loadingMore, hasMore, userId, page, loadPage])
+  }, [loadingMore, hasMore, userId, posts])
 
   useEffect(() => {
     let cancelled = false
     const init = async () => {
       if (!userId) return
       setLoading(true)
-      const { ids } = await fetchFeedIds(userId)
-      if (cancelled) return
-      idsRef.current = ids
-      const data = await fetchPostsPage(ids, 0)
-      if (cancelled) return
-      setPosts(data)
-      setHasMore(data.length >= PAGE_SIZE)
-      setPage(1)
-      setLoading(false)
+      try {
+        const { rows, hasMore: more } = await fetchFeedPage(null)
+        if (cancelled) return
+        setPosts(rows)
+        setHasMore(more)
+      } catch (err) {
+        console.error('Feed load failed:', err)
+      }
+      if (!cancelled) setLoading(false)
     }
     init()
     return () => { cancelled = true }
