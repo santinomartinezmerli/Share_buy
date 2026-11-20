@@ -16,6 +16,7 @@ Objetivo actual: mejorar performance y escalabilidad SIN cambiar de stack.
 - No cambiar el diseño visual ni el comportamiento de StoryViewer / pull-to-refresh salvo que la tarea lo pida.
 - Explicar cada cambio importante en 3 líneas máximo (el dueño del proyecto está aprendiendo).
 - No avanzar a la fase siguiente sin que el usuario diga "dale".
+- Nunca agregues trailers Co-Authored-By ni líneas de atribución a Claude en commits ni PR.
 
 ## Verificación
 Después de cada fase: `npm run build` y `npm run lint` sin errores, y un resumen de 5 líneas de lo que cambió.
