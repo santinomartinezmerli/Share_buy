@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchMessagesPage, fetchConversation } from '../services/chat'
-import { messagesKey, flattenMessages, addIncomingMessage } from '../lib/messagesCache'
+import { messagesKey, flattenMessages, addIncomingMessage, applyMessageUpdate } from '../lib/messagesCache'
 import { messageMutationOptions } from '../lib/messageMutations'
 
 // The messages of a conversation, NEWEST first (the order of the chat's column-reverse list).
@@ -81,6 +81,13 @@ export function useChatMessages(conversationId, userId) {
     [queryClient, conversationId, userId]
   )
 
+  // For the Realtime UPDATE handler: the other user read my message or edited theirs (see
+  // applyMessageUpdate). Patches read_at, content and updated_at of that message.
+  const applyUpdate = useCallback(
+    (row) => applyMessageUpdate(queryClient, conversationId, row),
+    [queryClient, conversationId]
+  )
+
   return {
     messages,
     loading: query.isPending,
@@ -91,6 +98,7 @@ export function useChatMessages(conversationId, userId) {
     editMessage,
     deleteById,
     addIncoming,
+    applyUpdate,
   }
 }
 

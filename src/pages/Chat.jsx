@@ -30,7 +30,7 @@ function Chat() {
   // other user come through Realtime (addIncoming); mine are shown optimistically (send).
   const {
     messages, loading: messagesLoading, loadingMore, hasMore, loadMore,
-    send, editMessage, deleteById, addIncoming,
+    send, editMessage, deleteById, addIncoming, applyUpdate,
   } = useChatMessages(conversationId, userId)
   const { otherUser, loading: partnerLoading } = useChatPartner(conversationId, userId)
   const loading = messagesLoading || partnerLoading
@@ -73,6 +73,14 @@ function Chat() {
         if (msg.sender_id === userId && scrollRef.current) scrollRef.current.scrollTop = 0
         setOtherTyping(false)
       })
+      // The other user read my messages (read_at, which shows "Leido") or edited theirs. RLS only
+      // sends the messages of my conversations and the filter narrows it to this one.
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`
+      }, (payload) => applyUpdate(payload.new))
       .on('broadcast', { event: 'typing' }, ({ payload }) => {
         if (payload.user_id !== userId) {
           setOtherTyping(true)
@@ -83,7 +91,7 @@ function Chat() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [conversationId, userId, addIncoming])
+  }, [conversationId, userId, addIncoming, applyUpdate])
 
   const handleSend = async () => {
     const text = newMessage.trim()

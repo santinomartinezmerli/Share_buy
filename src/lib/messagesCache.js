@@ -133,3 +133,35 @@ export function markMessagesRead(queryClient, conversationId, messageIds, readAt
     }))
   )
 }
+
+// A message of this conversation was UPDATED (Realtime UPDATE): the other user read my message
+// (read_at), or edited theirs (content, updated_at). Patches the message by id with only those
+// three fields, and only if something really changed. Returns what it did, mostly for tests:
+//   'ignored'   the list is not in the cache, or the message is not in a loaded page (it will
+//               come with its current values when that page loads)
+//   'unchanged' nothing differs (the echo of my own edit, for example): no re-render
+//   'patched'   the cached message was updated
+// Two guards against events that arrive out of date: read_at never goes back to null, and a
+// content/updated_at older than the one already in the cache (my own newer edit, still
+// travelling) is ignored.
+export function applyMessageUpdate(queryClient, conversationId, row) {
+  const data = queryClient.getQueryData(messagesKey(conversationId))
+  if (!data?.pages || !row?.id) return 'ignored'
+
+  const current = allMessages(data).find((m) => m.id === row.id)
+  if (!current) return 'ignored'
+
+  const patch = {}
+  if (row.read_at && row.read_at !== current.read_at) patch.read_at = row.read_at
+
+  const isOlder = !!(row.updated_at && current.updated_at &&
+    new Date(row.updated_at) < new Date(current.updated_at))
+  if (!isOlder) {
+    if ('content' in row && row.content !== current.content) patch.content = row.content
+    if ('updated_at' in row && row.updated_at !== current.updated_at) patch.updated_at = row.updated_at
+  }
+
+  if (Object.keys(patch).length === 0) return 'unchanged'
+  patchMessage(queryClient, conversationId, row.id, patch)
+  return 'patched'
+}
