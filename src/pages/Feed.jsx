@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext'
 import { useFeed } from '../hooks/useFeed'
 import { useStories } from '../hooks/useStories'
@@ -36,26 +35,14 @@ function PostSkeleton() {
   )
 }
 
-// Same box as the real stories row (padding, 56px circle, gap, 15px label, border), so the feed does
-// not jump down when the stories appear. Stories come from the loaded posts, so they cannot be known
-// before the feed arrives.
-function StoriesSkeleton() {
-  return (
-    <div className="flex gap-3 px-4 py-3 overflow-x-auto border-b border-gray-100 animate-pulse">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
-          <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700" />
-          <div className="h-[15px] w-10 rounded bg-gray-200 dark:bg-gray-700" />
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function Feed() {
   const { userId } = useUser()
   const { posts, loading, loadingMore, hasMore, loadMore } = useFeed(userId)
   const storyGroups = useStories(posts)
+  // Stories are decided from the same data, and in the same render, as the posts: while the feed
+  // loads no space is reserved for the row (the post skeletons are replaced by the real posts in one
+  // go), and it never shows up empty. A row with only your own story is not worth the space either.
+  const showStories = !loading && storyGroups.some((group) => group.userId !== userId)
   // The bell badge is not needed to paint the feed: it is requested once the feed has painted.
   const afterFeedPaint = useDeferredStart(userId, { waitForFeed: true })
   const unreadNotifications = useUnreadNotificationsCount(userId, afterFeedPaint)
@@ -64,10 +51,6 @@ function Feed() {
   const sentinelRef = useRef(null)
   const observerRef = useRef(null)
   const navigate = useNavigate()
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-  }
 
   useEffect(() => {
     if (!sentinelRef.current) return
@@ -88,7 +71,6 @@ function Feed() {
           share<span className="text-green-500">buy</span>
         </h1>
         <div className="flex items-center gap-4 text-gray-400">
-          <button onClick={handleSignOut} className="text-xs text-red-400">Salir</button>
           <button onClick={() => navigate('/notifications')} className="relative text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.437L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -107,8 +89,8 @@ function Feed() {
         </div>
       </div>
 
-      {loading ? <StoriesSkeleton key="stories-loading" /> : storyGroups.length > 0 && (
-        <div key="stories" className="flex gap-3 px-4 py-3 overflow-x-auto border-b border-gray-100">
+      {showStories && (
+        <div key="stories" data-testid="stories-row" className="flex gap-3 px-4 py-3 overflow-x-auto border-b border-gray-100">
           {storyGroups.map((group, index) => (
             <button key={group.userId} onClick={() => setActiveStoryGroup(index)} className="flex flex-col items-center gap-1 flex-shrink-0">
               <div className="w-14 h-14 rounded-full p-0.5 border-2 border-green-500">

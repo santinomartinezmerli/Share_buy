@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from './supabase'
 
 const UserContext = createContext(null)
@@ -8,6 +9,18 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(null)
   const [userId, setUserId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+  const previousUserId = useRef(null)
+
+  // When the signed-in user goes away (sign out, expired session) or becomes a different user, the
+  // whole react-query cache is dropped: feed, profiles, Explore and the rest belong to the previous
+  // account and must never be shown to the next one. It runs after the render in which the screens
+  // were already replaced, so nothing refetches into the empty cache.
+  useEffect(() => {
+    const previous = previousUserId.current
+    previousUserId.current = userId
+    if (previous && previous !== userId) queryClient.clear()
+  }, [userId, queryClient])
 
   useEffect(() => {
     const getInitialSession = async () => {

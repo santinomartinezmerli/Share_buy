@@ -23,6 +23,7 @@ const Messages = lazy(() => import('./pages/Messages'))
 const Chat = lazy(() => import('./pages/Chat'))
 const FollowList = lazy(() => import('./pages/FollowList'))
 const EditPost = lazy(() => import('./pages/EditPost'))
+const Settings = lazy(() => import('./pages/Settings'))
 
 // Same screen as the session check below, so going from "Cargando..." to the lazy Landing does not flicker.
 function FullScreenLoading() {
@@ -122,6 +123,7 @@ function App() {
                   <Route path="/messages/:conversationId" element={<Chat />} />
                   <Route path="/user/:userId/follow" element={<FollowList />} />
                   <Route path="/edit-post/:postId" element={<EditPost />} />
+                  <Route path="/settings" element={<Settings />} />
                 </Routes>
               </Suspense>
             </RouteBoundary>

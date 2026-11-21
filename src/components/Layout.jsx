@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
-import { useDarkMode } from '../lib/DarkModeContext'
 import { usePullToRefresh, PullIndicator } from '../hooks/usePullToRefresh'
 import { useNavDirection } from '../hooks/useNavDirection'
 import { useUser } from '../lib/UserContext.jsx'
@@ -18,7 +17,6 @@ function Layout({ children }) {
     const fn = window.__ptrRefresh
     if (fn) { fn().catch?.(e => console.error('PTR error:', e)) } else { window.location.reload() }
   })
-  const { dark, toggle } = useDarkMode()
   const { user } = useUser()
   const queryClient = useQueryClient()
   // The unread counts and the Realtime channels are not needed to paint the screen: they start
@@ -156,22 +154,6 @@ function Layout({ children }) {
           </nav>
         </div>
       </div>
-
-      <button
-        onClick={toggle}
-        className="fixed bottom-28 right-4 w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center shadow-lg border border-gray-300 dark:border-gray-600 hover:scale-110 transition-[scale,background-color] duration-200 active:scale-95"
-        title={dark ? 'Modo claro' : 'Modo oscuro'}
-      >
-        {dark ? (
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-          </svg>
-        )}
-      </button>
     </div>
   )
 }
