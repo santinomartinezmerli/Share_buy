@@ -1,10 +1,12 @@
 -- Migration: add core indexes for ShareBuy scalability
 -- These indexes prevent full table scans on the most queried tables.
--- They are safe to create concurrently and can be rolled back with DROP INDEX.
+-- Plain CREATE INDEX IF NOT EXISTS (not CONCURRENTLY, so it also works inside a
+-- transaction): it creates only what is missing and can be run again. They can be
+-- rolled back with DROP INDEX.
 
 -- Posts: profile grids and chronological feed
 CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
-CREATE INDEX IF NOT EXISTS idx_posts_created_at_desc ON posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
 
 -- Likes: like counts per post and "my liked posts"
 CREATE INDEX IF NOT EXISTS idx_likes_post_id ON likes(post_id);
@@ -25,5 +27,5 @@ CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 -- Comments: comment sections on posts
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
 
--- Notifications: user notification feed
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+-- Notifications: their indexes are created together with the table, in
+-- 007_notifications.sql (the table does not exist yet when this file runs).
