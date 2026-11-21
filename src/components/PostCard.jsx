@@ -29,12 +29,20 @@ function PostCard({ post, currentUserId, onCommentClick }) {
         <span className="text-xs text-gray-400 flex-shrink-0">{new Date(post.created_at).toLocaleDateString('es-AR')}</span>
       </div>
 
-      {/* Image */}
+      {/* Image. The carousel case is a div with role=button, not a <button>, because the carousel has
+          its own buttons inside. */}
       <div className="px-2">
         {imageUrls.length > 1 ? (
-          <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate(`/post/${post.id}`, { state: { post } })} className="w-full block">
+          <motion.div
+            role="button"
+            tabIndex={0}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate(`/post/${post.id}`, { state: { post } })}
+            onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); navigate(`/post/${post.id}`, { state: { post } }) } }}
+            className="w-full block cursor-pointer"
+          >
             <ImageCarousel images={imageUrls} brand={post.brand} className="rounded-xl" />
-          </motion.button>
+          </motion.div>
         ) : imageUrls.length === 1 ? (
           <motion.button whileTap={{ scale: 0.97 }} onClick={() => navigate(`/post/${post.id}`, { state: { post } })} className="w-full block">
             <div className="relative aspect-square bg-gray-50 dark:bg-gray-700 rounded-xl overflow-hidden">
