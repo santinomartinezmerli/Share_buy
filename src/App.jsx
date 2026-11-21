@@ -1,11 +1,12 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useUser } from './lib/UserContext.jsx'
 import { DarkModeProvider } from './lib/DarkModeContext'
 import Landing from './pages/Landing'
 import Feed from './pages/Feed'
 import Layout from './components/Layout'
 import { supabase } from './lib/supabase'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // Every screen except Landing and Feed (the first thing a user sees) is its own chunk, downloaded
 // the first time the route is opened.
@@ -29,6 +30,13 @@ function RouteFallback() {
       <div className="text-green-500 text-sm">Cargando...</div>
     </div>
   )
+}
+
+// Error boundary of the current screen: it sits inside Layout so the nav bar survives a crash, and
+// it resets when the route changes.
+function RouteBoundary({ children }) {
+  const { pathname } = useLocation()
+  return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>
 }
 
 function App() {
@@ -79,31 +87,35 @@ function App() {
     <BrowserRouter>
       <DarkModeProvider>
         {needsSetup ? (
-          <Suspense fallback={<RouteFallback />}>
+          <RouteBoundary>
+            <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="*" element={<SetupProfile />} />
               </Routes>
             </Suspense>
-          ) : (
-            <Layout>
+          </RouteBoundary>
+        ) : (
+          <Layout>
+            <RouteBoundary>
               <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                <Route path="/" element={<Navigate to="/feed" />} />
-                <Route path="/feed" element={<Feed />} />
-                <Route path="/explore" element={<Explore />} />
-                <Route path="/new" element={<NewPost />} />
-                <Route path="/post/:postId" element={<PostDetail />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/review/:postId" element={<Review />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/edit-profile" element={<EditProfile />} />
-                <Route path="/user/:userId" element={<UserProfile />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/messages/:conversationId" element={<Chat />} />
-                <Route path="/user/:userId/follow" element={<FollowList />} />
-                <Route path="/edit-post/:postId" element={<EditPost />} />
-              </Routes>
-            </Suspense>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/feed" />} />
+                  <Route path="/feed" element={<Feed />} />
+                  <Route path="/explore" element={<Explore />} />
+                  <Route path="/new" element={<NewPost />} />
+                  <Route path="/post/:postId" element={<PostDetail />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/review/:postId" element={<Review />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/edit-profile" element={<EditProfile />} />
+                  <Route path="/user/:userId" element={<UserProfile />} />
+                  <Route path="/messages" element={<Messages />} />
+                  <Route path="/messages/:conversationId" element={<Chat />} />
+                  <Route path="/user/:userId/follow" element={<FollowList />} />
+                  <Route path="/edit-post/:postId" element={<EditPost />} />
+                </Routes>
+              </Suspense>
+            </RouteBoundary>
           </Layout>
         )}
       </DarkModeProvider>

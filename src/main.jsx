@@ -5,13 +5,19 @@ import './index.css'
 import App from './App.jsx'
 import { UserProvider } from './lib/UserContext.jsx'
 import { queryClient } from './lib/queryClient'
+import ErrorBoundary from './components/ErrorBoundary'
+import { listenForPreloadErrors } from './lib/chunkReload'
+
+listenForPreloadErrors()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <UserProvider>
-        <App />
-      </UserProvider>
-    </QueryClientProvider>
+    <ErrorBoundary fullScreen>
+      <QueryClientProvider client={queryClient}>
+        <UserProvider>
+          <App />
+        </UserProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )
