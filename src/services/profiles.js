@@ -2,16 +2,16 @@ import { supabase } from '../lib/supabase'
 
 export const PROFILE_POSTS_PAGE_SIZE = 24
 
-// Everything the profile header needs, fetched in parallel instead of one request after
-// another: the profile row, followers and following counts and, when `viewerId` is looking at
-// someone else's profile, whether they follow / blocked that user.
+// Everything the profile header needs, fetched in parallel instead of one request after another.
+// The profile row already carries followers_count and following_count: they are columns kept exact
+// by triggers (migration 006), so there are no count queries any more. When viewerId is looking at
+// someone else it also asks whether they follow / blocked that user. That is 1 request for your own
+// profile and 3 for someone else's (it used to be 5).
 export async function fetchProfileSummary(profileId, viewerId) {
   const isOther = !!viewerId && viewerId !== profileId
 
-  const [profileRes, followersRes, followingRes, followRes, blockRes] = await Promise.all([
+  const [profileRes, followRes, blockRes] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', profileId).maybeSingle(),
-    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profileId),
-    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profileId),
     isOther
       ? supabase.from('follows').select('id').eq('follower_id', viewerId).eq('following_id', profileId).maybeSingle()
       : null,
@@ -21,10 +21,11 @@ export async function fetchProfileSummary(profileId, viewerId) {
   ])
   if (profileRes.error) throw profileRes.error
 
+  const profile = profileRes.data
   return {
-    profile: profileRes.data,
-    followersCount: followersRes.count ?? 0,
-    followingCount: followingRes.count ?? 0,
+    profile,
+    followersCount: profile?.followers_count ?? 0,
+    followingCount: profile?.following_count ?? 0,
     following: !!followRes?.data,
     blocked: !!blockRes?.data,
   }
