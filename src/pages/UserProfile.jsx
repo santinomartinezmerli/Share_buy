@@ -4,10 +4,13 @@ import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { SkeletonProfile } from '../components/Skeleton'
 import { motion } from 'framer-motion'
+import { useQueryClient } from '@tanstack/react-query'
+import { invalidateFeed } from '../lib/feedCache'
 
 function UserProfile() {
   const { userId } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { userId: currentUserId } = useUser()
   const [profile, setProfile] = useState(null)
   const [posts, setPosts] = useState([])
@@ -81,6 +84,7 @@ function UserProfile() {
         setFollowersCount(prev => prev - 1)
       }
     }
+    invalidateFeed(queryClient)
   }
 
   const handleMessage = async () => {
@@ -116,6 +120,7 @@ function UserProfile() {
       })
       setBlocked(true)
     }
+    invalidateFeed(queryClient)
   }
 
   if (loading) return <SkeletonProfile />

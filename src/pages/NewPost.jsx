@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { compressImage } from '../lib/compressImage'
+import { useQueryClient } from '@tanstack/react-query'
+import { invalidateFeed } from '../lib/feedCache'
 
 function NewPost() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { userId } = useUser()
   const fileInputRef = useRef(null)
   const [form, setForm] = useState({
@@ -95,6 +98,7 @@ function NewPost() {
       setError('No pudimos publicar tu compra. Intentá de nuevo.')
       return
     }
+    invalidateFeed(queryClient)
     navigate('/feed')
   }
 

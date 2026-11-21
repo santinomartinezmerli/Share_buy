@@ -4,9 +4,12 @@ import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { compressImage, MAX_AVATAR_SIZE } from '../lib/compressImage'
 import { SkeletonForm } from '../components/Skeleton'
+import { useQueryClient } from '@tanstack/react-query'
+import { invalidateFeed } from '../lib/feedCache'
 
 function EditProfile() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { userId } = useUser()
   const [form, setForm] = useState({ username: '', bio: '' })
   const [avatarUrl, setAvatarUrl] = useState(null)
@@ -103,6 +106,7 @@ function EditProfile() {
       return
     }
 
+    invalidateFeed(queryClient)
     navigate('/profile')
   }
 

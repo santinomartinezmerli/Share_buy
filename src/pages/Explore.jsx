@@ -4,10 +4,13 @@ import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import EmptyState from '../components/EmptyState'
 import { motion } from 'framer-motion'
+import { useQueryClient } from '@tanstack/react-query'
+import { invalidateFeed } from '../lib/feedCache'
 const CATEGORIES = ['Todo', 'Ropa', 'Tecnología', 'Hogar', 'Deporte', 'Belleza']
 
 function Explore() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { userId } = useUser()
   const [posts, setPosts] = useState([])
   const [users, setUsers] = useState([])
@@ -88,6 +91,7 @@ function Explore() {
       await supabase.from('likes').insert({ post_id: postId, user_id: userId })
       setLikedIds(prev => new Set([...prev, postId]))
     }
+    invalidateFeed(queryClient)
   }
 
   const filtered = posts.filter(post => {

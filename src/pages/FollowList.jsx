@@ -3,12 +3,15 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { SkeletonList } from '../components/Skeleton'
+import { useQueryClient } from '@tanstack/react-query'
+import { invalidateFeed } from '../lib/feedCache'
 
 function FollowList() {
   const { userId } = useParams()
   const [searchParams] = useSearchParams()
   const type = searchParams.get('type') || 'followers'
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { userId: currentUserId } = useUser()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -66,6 +69,7 @@ function FollowList() {
       })
       if (error) setFollowingMap(prev => ({ ...prev, [targetId]: false }))
     }
+    invalidateFeed(queryClient)
   }
 
   return (

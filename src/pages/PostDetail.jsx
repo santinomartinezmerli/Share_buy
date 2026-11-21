@@ -5,11 +5,14 @@ import { useUser } from '../lib/UserContext.jsx'
 import ImageCarousel from '../components/ImageCarousel'
 import Avatar from '../components/Avatar'
 import { SkeletonPostDetail } from '../components/Skeleton'
+import { useQueryClient } from '@tanstack/react-query'
+import { invalidateFeed } from '../lib/feedCache'
 
 function PostDetail() {
   const { postId } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const location = useLocation()
   const commentInputRef = useRef(null)
   const { userId: currentUserId } = useUser()
@@ -101,6 +104,7 @@ function PostDetail() {
   const handleDeletePost = async () => {
     setDeleting(true)
     await supabase.from('posts').delete().eq('id', postId)
+    invalidateFeed(queryClient)
     navigate('/profile', { replace: true })
   }
 
@@ -164,6 +168,7 @@ function PostDetail() {
       const { error } = await supabase.from('saves').insert({ post_id: postId, user_id: currentUserId })
       if (error) setSaved(false)
     }
+    invalidateFeed(queryClient)
   }
 
   if (loading) return <SkeletonPostDetail />
@@ -326,7 +331,7 @@ function PostDetail() {
               const { data } = await supabase
                 .from('posts').update({ for_sale: !post.for_sale })
                 .eq('id', post.id).select().single()
-              if (data) setPost(data)
+              if (data) { setPost(data); invalidateFeed(queryClient) }
             }} className={`mt-3 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors bg-white dark:bg-white ${post.for_sale ? 'border-red-200 text-red-500' : 'border-green-200 text-green-600'}`}>
               {post.for_sale ? 'Quitar de venta' : 'Poner en venta'}
             </button>

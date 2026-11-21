@@ -19,9 +19,10 @@ export function useFeed(userId) {
     initialPageParam: null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: !!userId,
-    // Coming back to the feed shows the cached posts instantly and refreshes them in the
-    // background, so a new post or a new follow is never missing.
-    refetchOnMount: 'always',
+    // Within 60s coming back to the feed costs no request. Anything that changes the feed
+    // calls invalidateFeed() (see lib/feedCache.js), which forces a refetch on the next
+    // visit; older data is shown instantly and refreshed in the background.
+    staleTime: 60_000,
   })
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } = query
