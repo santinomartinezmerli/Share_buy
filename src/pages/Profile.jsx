@@ -1,44 +1,39 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { SkeletonProfile } from '../components/Skeleton'
 import { motion } from 'framer-motion'
+import { useProfile } from '../hooks/useProfile'
+import { useProfilePosts } from '../hooks/useProfilePosts'
 
 function Profile() {
   const navigate = useNavigate()
   const { userId } = useUser()
-  const [profile, setProfile] = useState(null)
-  const [posts, setPosts] = useState([])
   const [savedPosts, setSavedPosts] = useState([])
-  const [followersCount, setFollowersCount] = useState(0)
-  const [followingCount, setFollowingCount] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [savedLoading, setSavedLoading] = useState(true)
   const [tab, setTab] = useState('posts')
+  const sentinelRef = useRef(null)
 
+  // Header and posts are cached for 60s: coming back to this screen is instant.
+  const { data: summary, isPending: summaryPending } = useProfile(userId, userId)
+  const { posts, total, loading: postsLoading, loadingMore, hasMore, loadMore } = useProfilePosts(userId)
+  const profile = summary?.profile ?? null
+  const followersCount = summary?.followersCount ?? 0
+  const followingCount = summary?.followingCount ?? 0
+
+  // Saved posts are still loaded here, on every visit; a later step moves them to a paginated
+  // query. They no longer hold back the rest of the page.
   useEffect(() => {
     if (!userId) return
-    const fetchProfile = async () => {
-      const { data: profileData } = await supabase
-        .from('profiles').select('*').eq('id', userId).maybeSingle()
-
-      const { data: postsData } = await supabase
-        .from('posts').select('*').eq('user_id', userId)
-        .order('created_at', { ascending: false })
-
-      const { count: followers } = await supabase
-        .from('follows').select('*', { count: 'exact', head: true })
-        .eq('following_id', userId)
-
-      const { count: followingC } = await supabase
-        .from('follows').select('*', { count: 'exact', head: true })
-        .eq('follower_id', userId)
-
+    let cancelled = false
+    const fetchSaved = async () => {
       const { data: savedData } = await supabase
         .from('saves')
         .select('post_id')
         .eq('user_id', userId)
 
+      let saved = []
       if (savedData && savedData.length > 0) {
         const savedIds = savedData.map(s => s.post_id)
         const { data: sp } = await supabase
@@ -46,20 +41,30 @@ function Profile() {
           .select('*, profiles(username, avatar_url)')
           .in('id', savedIds)
           .order('created_at', { ascending: false })
-        setSavedPosts(sp ?? [])
+        saved = sp ?? []
       }
-
-      setProfile(profileData)
-      setPosts(postsData ?? [])
-      setFollowersCount(followers ?? 0)
-      setFollowingCount(followingC ?? 0)
-      setLoading(false)
+      if (!cancelled) {
+        setSavedPosts(saved)
+        setSavedLoading(false)
+      }
     }
-
-    fetchProfile()
+    fetchSaved()
+    return () => { cancelled = true }
   }, [userId])
 
-  if (loading) return <SkeletonProfile />
+  // Infinite scroll on the posts tab: same observer as the feed.
+  useEffect(() => {
+    if (tab !== 'posts' || !sentinelRef.current) return
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        loadMore()
+      }
+    }, { threshold: 0.1 })
+    obs.observe(sentinelRef.current)
+    return () => obs.disconnect()
+  }, [tab, loadMore, hasMore, loadingMore])
+
+  if (summaryPending || postsLoading) return <SkeletonProfile />
 
   const grid = (tab === 'posts' ? posts : savedPosts)
 
@@ -84,7 +89,7 @@ function Profile() {
           </div>
           <div className="flex gap-8 flex-1 justify-center">
             <div className="flex flex-col items-center">
-              <span className="text-lg font-bold text-gray-900 dark:text-white">{posts.length}</span>
+              <span className="text-lg font-bold text-gray-900 dark:text-white">{total}</span>
               <span className="text-xs text-gray-400 dark:text-gray-500">compras</span>
             </div>
             <button onClick={() => userId && navigate(`/user/${userId}/follow?type=followers`)} className="flex flex-col items-center active:opacity-60 transition-opacity">
@@ -128,7 +133,13 @@ function Profile() {
         </button>
       </div>
 
-      {grid.length === 0 ? (
+      {tab === 'saved' && savedLoading ? (
+        <div className="grid grid-cols-3 gap-1 p-1">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="aspect-square bg-gray-100 dark:bg-gray-800 animate-pulse rounded-sm" />
+          ))}
+        </div>
+      ) : grid.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 px-4 gap-2 text-gray-400">
           <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -139,18 +150,24 @@ function Profile() {
           <p className="text-xs text-gray-400">{tab === 'posts' ? 'Tus compras aparecen acá' : 'Tocá el marcador en los posts'}</p>
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-3 gap-1 p-1">
           {grid.map(post => (
             <motion.button key={post.id} whileTap={{ scale: 0.95 }} onClick={() => navigate(`/post/${post.id}`)}
               className="aspect-square bg-gray-50 dark:bg-gray-800 overflow-hidden rounded-sm active:opacity-80 transition-opacity">
               {(post.image_urls?.[0] || post.image_url) ? (
-                <img src={post.image_urls?.[0] ?? post.image_url} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                <img src={post.image_urls?.[0] ?? post.image_url} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" loading="lazy" decoding="async" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-3xl">🛍️</div>
               )}
             </motion.button>
           ))}
         </div>
+        {tab === 'posts' && <div ref={sentinelRef} className="h-1" />}
+        {tab === 'posts' && loadingMore && (
+          <div className="py-4 text-center text-xs text-gray-400">Cargando más...</div>
+        )}
+        </>
       )}
     </div>
   )
