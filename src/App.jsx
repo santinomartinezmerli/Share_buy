@@ -1,24 +1,35 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useUser } from './lib/UserContext.jsx'
 import { DarkModeProvider } from './lib/DarkModeContext'
 import Landing from './pages/Landing'
-import SetupProfile from './pages/SetupProfile'
 import Feed from './pages/Feed'
-import Explore from './pages/Explore'
-import NewPost from './pages/NewPost'
-import PostDetail from './pages/PostDetail'
-import Profile from './pages/Profile'
-import EditProfile from './pages/EditProfile'
-import UserProfile from './pages/UserProfile'
-import Notifications from './pages/Notifications'
-import Review from './pages/Review'
 import Layout from './components/Layout'
-import Messages from './pages/Messages'
-import Chat from './pages/Chat'
-import FollowList from './pages/FollowList'
-import EditPost from './pages/EditPost'
 import { supabase } from './lib/supabase'
+
+// Every screen except Landing and Feed (the first thing a user sees) is its own chunk, downloaded
+// the first time the route is opened.
+const SetupProfile = lazy(() => import('./pages/SetupProfile'))
+const Explore = lazy(() => import('./pages/Explore'))
+const NewPost = lazy(() => import('./pages/NewPost'))
+const PostDetail = lazy(() => import('./pages/PostDetail'))
+const Profile = lazy(() => import('./pages/Profile'))
+const EditProfile = lazy(() => import('./pages/EditProfile'))
+const UserProfile = lazy(() => import('./pages/UserProfile'))
+const Notifications = lazy(() => import('./pages/Notifications'))
+const Review = lazy(() => import('./pages/Review'))
+const Messages = lazy(() => import('./pages/Messages'))
+const Chat = lazy(() => import('./pages/Chat'))
+const FollowList = lazy(() => import('./pages/FollowList'))
+const EditPost = lazy(() => import('./pages/EditPost'))
+
+function RouteFallback() {
+  return (
+    <div className="flex flex-1 items-center justify-center py-20">
+      <div className="text-green-500 text-sm">Cargando...</div>
+    </div>
+  )
+}
 
 function App() {
   const { session, loading, user, userId } = useUser()
@@ -68,27 +79,31 @@ function App() {
     <BrowserRouter>
       <DarkModeProvider>
         {needsSetup ? (
-          <Routes>
-            <Route path="*" element={<SetupProfile />} />
-          </Routes>
-        ) : (
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Navigate to="/feed" />} />
-              <Route path="/feed" element={<Feed />} />
-              <Route path="/explore" element={<Explore />} />
-              <Route path="/new" element={<NewPost />} />
-              <Route path="/post/:postId" element={<PostDetail />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/review/:postId" element={<Review />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/edit-profile" element={<EditProfile />} />
-              <Route path="/user/:userId" element={<UserProfile />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/messages/:conversationId" element={<Chat />} />
-              <Route path="/user/:userId/follow" element={<FollowList />} />
-              <Route path="/edit-post/:postId" element={<EditPost />} />
-            </Routes>
+          <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="*" element={<SetupProfile />} />
+              </Routes>
+            </Suspense>
+          ) : (
+            <Layout>
+              <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/feed" />} />
+                <Route path="/feed" element={<Feed />} />
+                <Route path="/explore" element={<Explore />} />
+                <Route path="/new" element={<NewPost />} />
+                <Route path="/post/:postId" element={<PostDetail />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/review/:postId" element={<Review />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/edit-profile" element={<EditProfile />} />
+                <Route path="/user/:userId" element={<UserProfile />} />
+                <Route path="/messages" element={<Messages />} />
+                <Route path="/messages/:conversationId" element={<Chat />} />
+                <Route path="/user/:userId/follow" element={<FollowList />} />
+                <Route path="/edit-post/:postId" element={<EditPost />} />
+              </Routes>
+            </Suspense>
           </Layout>
         )}
       </DarkModeProvider>
