@@ -2,14 +2,14 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useUser } from './lib/UserContext.jsx'
 import { DarkModeProvider } from './lib/DarkModeContext'
-import Landing from './pages/Landing'
 import Feed from './pages/Feed'
 import Layout from './components/Layout'
 import { supabase } from './lib/supabase'
 import ErrorBoundary from './components/ErrorBoundary'
 
-// Every screen except Landing and Feed (the first thing a user sees) is its own chunk, downloaded
-// the first time the route is opened.
+// Every screen except Feed (the first thing a signed-in user sees) is its own chunk, downloaded
+// the first time it is opened. Landing is only for signed-out users, so it is lazy too.
+const Landing = lazy(() => import('./pages/Landing'))
 const SetupProfile = lazy(() => import('./pages/SetupProfile'))
 const Explore = lazy(() => import('./pages/Explore'))
 const NewPost = lazy(() => import('./pages/NewPost'))
@@ -23,6 +23,15 @@ const Messages = lazy(() => import('./pages/Messages'))
 const Chat = lazy(() => import('./pages/Chat'))
 const FollowList = lazy(() => import('./pages/FollowList'))
 const EditPost = lazy(() => import('./pages/EditPost'))
+
+// Same screen as the session check below, so going from "Cargando..." to the lazy Landing does not flicker.
+function FullScreenLoading() {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-green-500 text-sm">Cargando...</div>
+    </div>
+  )
+}
 
 function RouteFallback() {
   return (
@@ -75,13 +84,13 @@ function App() {
     return () => { cancelled = true }
   }, [userId, userEmail])
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="text-green-500 text-sm">Cargando...</div>
-    </div>
-  )
+  if (loading) return <FullScreenLoading />
 
-  if (!session) return <Landing />
+  if (!session) return (
+    <Suspense fallback={<FullScreenLoading />}>
+      <Landing />
+    </Suspense>
+  )
 
   return (
     <BrowserRouter>
