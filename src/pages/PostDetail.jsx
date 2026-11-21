@@ -12,6 +12,7 @@ import { invalidateSavedPosts } from '../lib/profileCache'
 import { patchPostEverywhere } from '../lib/postCache'
 import { setPostForSale } from '../services/posts'
 import { useComments } from '../hooks/useComments'
+import { usePostDetailLike } from '../hooks/usePostDetailLike'
 
 function PostDetail() {
   const { postId } = useParams()
@@ -45,17 +46,29 @@ function PostDetail() {
   // state) when it runs, not to re-run when the post changes: it reads it from a ref.
   const postRef = useRef(post)
   useEffect(() => { postRef.current = post })
+  const { liked, likesCount, toggleLike, likeOnly, init: initLike } = usePostDetailLike(postId, currentUserId)
 
   useEffect(() => {
     if (!currentUserId) return
     const fetch = async () => {
-      if (!postRef.current) {
+      // The like state is the only extra request: the counter comes with the post (posts.likes_count,
+      // or like_count when the post arrived from the feed) and it runs in parallel with the others.
+      const likedRequest = supabase
+        .from('likes')
+        .select('post_id')
+        .eq('post_id', postId)
+        .eq('user_id', currentUserId)
+        .maybeSingle()
+
+      let current = postRef.current
+      if (!current) {
         const { data: postData } = await supabase
           .from('posts')
           .select('*, profiles(username, avatar_url)')
           .eq('id', postId)
           .maybeSingle()
         setPost(postData)
+        current = postData
       }
 
       const { data: reviewsData } = await supabase
@@ -71,12 +84,14 @@ function PostDetail() {
         .eq('user_id', currentUserId)
         .maybeSingle()
 
+      const { data: likedData } = await likedRequest
+      initLike(!!likedData, current?.like_count ?? current?.likes_count ?? 0)
       setReviews(reviewsData ?? [])
       setSaved(!!savedData)
       setLoading(false)
     }
     fetch()
-  }, [postId, currentUserId])
+  }, [postId, currentUserId, initLike])
 
   useEffect(() => {
     if (!loading && searchParams.get('comment') === 'true') {
@@ -282,6 +297,8 @@ function PostDetail() {
       )}
 
       <div className="flex-1 overflow-y-auto">
+        {/* Double tap on the photo likes the post (it never removes the like). */}
+        <div onDoubleClick={likeOnly} className="touch-manipulation">
         {imageUrls.length > 1 ? (
           <ImageCarousel images={imageUrls} brand={post.brand} />
         ) : imageUrls.length === 1 ? (
@@ -303,6 +320,7 @@ function PostDetail() {
             )}
           </div>
         )}
+        </div>
 
         {/* Autor */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
@@ -318,6 +336,12 @@ function PostDetail() {
           <div className="flex items-start justify-between mb-1">
             <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{post.product}</h1>
             <div className="flex items-center gap-2">
+              <button onClick={toggleLike} aria-pressed={liked} aria-label={liked ? 'Quitar like' : 'Dar like'} className="flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className={`w-5 h-5 transition-[color,fill,scale] ${liked ? 'text-red-500 fill-red-500 scale-110' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                {likesCount > 0 && <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{likesCount}</span>}
+              </button>
               <button onClick={handleSave}>
                 <svg xmlns="http://www.w3.org/2000/svg" className={`w-5 h-5 ${saved ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
