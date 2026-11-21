@@ -1,28 +1,29 @@
-import { useState, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { useCallback } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { addSave, removeSave } from '../services/engagement'
+import { feedKey, patchFeedPost } from '../lib/feedCache'
 
-// initialSaved comes from get_feed (saved_by_me), so the hook no longer makes its own
-// request per post.
-export function useSave(postId, userId, initialSaved = false) {
-  const [saved, setSaved] = useState(initialSaved)
-  const [loading, setLoading] = useState(false)
+// Same idea as useLike: state comes from the cached post and is patched optimistically.
+export function useSave(post, userId) {
+  const queryClient = useQueryClient()
 
-  const toggleSave = useCallback(async (e) => {
+  const setSaved = (saved) =>
+    patchFeedPost(queryClient, userId, post.id, () => ({ saved_by_me: saved }))
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: ({ wasSaved }) => (wasSaved ? removeSave(post.id, userId) : addSave(post.id, userId)),
+    onMutate: async ({ wasSaved }) => {
+      await queryClient.cancelQueries({ queryKey: feedKey(userId) })
+      setSaved(!wasSaved)
+    },
+    onError: (_err, { wasSaved }) => setSaved(wasSaved),
+  })
+
+  const toggleSave = useCallback((e) => {
     if (e) e.stopPropagation()
-    if (!userId || loading) return
-    setLoading(true)
-    const wasSaved = saved
-    setSaved(!wasSaved)
+    if (!userId || isPending) return
+    mutate({ wasSaved: !!post.saved_by_me })
+  }, [userId, isPending, mutate, post.saved_by_me])
 
-    if (wasSaved) {
-      const { error } = await supabase.from('saves').delete().eq('post_id', postId).eq('user_id', userId)
-      if (error) setSaved(true)
-    } else {
-      const { error } = await supabase.from('saves').insert({ post_id: postId, user_id: userId })
-      if (error) setSaved(false)
-    }
-    setLoading(false)
-  }, [saved, loading, postId, userId])
-
-  return { saved, toggleSave, loading }
+  return { saved: !!post.saved_by_me, toggleSave, loading: isPending }
 }
