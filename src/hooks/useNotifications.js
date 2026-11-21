@@ -50,7 +50,8 @@ export function useNotifications(userId) {
 }
 
 // Unread notifications, for the badge on the bell. A single count query, no rows.
-export function useUnreadNotificationsCount(userId) {
+// `enabled` lets the caller hold the request until the feed has painted (see useDeferredStart).
+export function useUnreadNotificationsCount(userId, enabled = true) {
   const { data } = useQuery({
     queryKey: unreadNotificationsKey(userId),
     queryFn: async () => {
@@ -61,7 +62,7 @@ export function useUnreadNotificationsCount(userId) {
         throw err
       }
     },
-    enabled: !!userId,
+    enabled: !!userId && enabled,
     staleTime: 60_000,
   })
   return data ?? 0

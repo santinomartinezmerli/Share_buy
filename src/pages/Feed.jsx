@@ -5,6 +5,7 @@ import { useUser } from '../lib/UserContext'
 import { useFeed } from '../hooks/useFeed'
 import { useStories } from '../hooks/useStories'
 import { useUnreadNotificationsCount } from '../hooks/useNotifications'
+import { useDeferredStart } from '../hooks/useDeferredStart'
 import StoryViewer from '../components/StoryViewer'
 import PostCard from '../components/PostCard'
 import CommentSheet from '../components/CommentSheet'
@@ -55,7 +56,9 @@ function Feed() {
   const { userId } = useUser()
   const { posts, loading, loadingMore, hasMore, loadMore } = useFeed(userId)
   const storyGroups = useStories(posts)
-  const unreadNotifications = useUnreadNotificationsCount(userId)
+  // The bell badge is not needed to paint the feed: it is requested once the feed has painted.
+  const afterFeedPaint = useDeferredStart(userId, { waitForFeed: true })
+  const unreadNotifications = useUnreadNotificationsCount(userId, afterFeedPaint)
   const [activeStoryGroup, setActiveStoryGroup] = useState(null)
   const [commentPostId, setCommentPostId] = useState(null)
   const sentinelRef = useRef(null)

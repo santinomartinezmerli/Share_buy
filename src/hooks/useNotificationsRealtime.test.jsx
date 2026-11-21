@@ -19,7 +19,7 @@ const { useNotificationsRealtime } = await import('./useNotificationsRealtime')
 
 const USER = 'user-1'
 
-function setup() {
+function setup(enabled = true) {
   const queryClient = new QueryClient()
   queryClient.setQueryData(notificationsKey(USER), {
     pages: [{ notifications: [{ id: 'n1' }, { id: 'n2' }] }],
@@ -28,7 +28,7 @@ function setup() {
   queryClient.setQueryData(unreadNotificationsKey(USER), 2)
   const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
   const wrapper = ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  const view = renderHook(() => useNotificationsRealtime(USER), { wrapper })
+  const view = renderHook(({ on }) => useNotificationsRealtime(USER, on), { wrapper, initialProps: { on: enabled } })
   return { invalidate, view }
 }
 
@@ -70,6 +70,18 @@ describe('useNotificationsRealtime', () => {
       notificationsKey(USER),
       unreadNotificationsKey(USER),
     ])
+  })
+
+  it('opens no channel while disabled, and exactly one notifications channel once enabled', () => {
+    const { view } = setup(false)
+    expect(supabaseMock.channel).not.toHaveBeenCalled()
+
+    view.rerender({ on: true })
+    expect(supabaseMock.channel).toHaveBeenCalledTimes(1)
+    expect(supabaseMock.channel).toHaveBeenCalledWith(`notifications:${USER}`)
+
+    view.rerender({ on: true }) // re-rendering does not open a second one
+    expect(supabaseMock.channel).toHaveBeenCalledTimes(1)
   })
 
   it('removes the channel synchronously on unmount', () => {

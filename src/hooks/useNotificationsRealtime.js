@@ -15,11 +15,12 @@ import { invalidateNotifications, handleNotificationDeleted } from '../lib/notif
 //
 // The cleanup is returned by the effect itself, not by an async function, so React really runs
 // it when the user changes (sign out) or Layout unmounts, and the channel is removed.
-export function useNotificationsRealtime(userId) {
+// `enabled` lets Layout open the channel after the feed has painted (see useDeferredStart).
+export function useNotificationsRealtime(userId, enabled = true) {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId || !enabled) return
 
     const channel = supabase
       .channel(`notifications:${userId}`)
@@ -36,5 +37,5 @@ export function useNotificationsRealtime(userId) {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [userId, queryClient])
+  }, [userId, enabled, queryClient])
 }

@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { invalidateConversations, invalidateUnreadMessages } from '../lib/conversationsCache'
 import { useUnreadMessagesCount } from '../hooks/useUnreadMessages'
 import { useNotificationsRealtime } from '../hooks/useNotificationsRealtime'
+import { useDeferredStart } from '../hooks/useDeferredStart'
 
 function Layout({ children }) {
   const location = useLocation()
@@ -20,7 +21,11 @@ function Layout({ children }) {
   const { dark, toggle } = useDarkMode()
   const { user } = useUser()
   const queryClient = useQueryClient()
-  useNotificationsRealtime(user?.id)
+  // The unread counts and the Realtime channels are not needed to paint the screen: they start
+  // once the feed has painted (or right after idle when the first screen is not the feed).
+  const isFeedRoute = location.pathname === '/' || location.pathname === '/feed'
+  const afterFirstPaint = useDeferredStart(user?.id, { waitForFeed: isFeedRoute })
+  useNotificationsRealtime(user?.id, afterFirstPaint)
   const direction = useNavDirection()
   const scrollMap = useRef({})
   const prevPathRef = useRef(location.pathname)
@@ -38,7 +43,7 @@ function Layout({ children }) {
 
   // Unread messages for the badge, counted in SQL (get_unread_messages_count). The Realtime
   // channel below and Chat (when it marks a conversation as read) keep it up to date.
-  const unreadCount = useUnreadMessagesCount(user?.id)
+  const unreadCount = useUnreadMessagesCount(user?.id, afterFirstPaint)
 
   // Real-time subscription for messages: INSERT (a message arrived or was sent) and UPDATE (a
   // conversation was marked as read, or a message was edited). RLS only sends this channel the
@@ -48,7 +53,7 @@ function Layout({ children }) {
   // A message I sent only changes the list; a message from the other user, or an UPDATE, can also
   // change the unread count.
   useEffect(() => {
-    if (!user) return
+    if (!user || !afterFirstPaint) return
     const userId = user.id
     let timer = null
     let countStale = false
@@ -75,7 +80,7 @@ function Layout({ children }) {
       clearTimeout(timer)
       supabase.removeChannel(channel)
     }
-  }, [user, queryClient])
+  }, [user, afterFirstPaint, queryClient])
 
   return (
     <div className="flex flex-col h-dvh max-w-md mx-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white relative overflow-hidden">
