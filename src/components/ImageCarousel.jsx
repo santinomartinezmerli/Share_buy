@@ -146,7 +146,7 @@ function ImageCarousel({ images, brand, className = '', priority = false }) {
             <button
               key={i}
               onClick={(e) => goToDot(i, e)}
-              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === current ? 'bg-white w-3' : 'bg-white/50'}`}
+              className={`w-1.5 h-1.5 rounded-full transition-[width,background-color] duration-300 ${i === current ? 'bg-white w-3' : 'bg-white/50'}`}
             />
           ))}
         </div>

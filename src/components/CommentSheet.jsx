@@ -53,7 +53,7 @@ function CommentSheet({ postId, currentUserId, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div
-        className="absolute inset-0 transition-all duration-250"
+        className="absolute inset-0 transition-[opacity,background-color] duration-250"
         style={{ opacity: visible ? 1 : 0, backgroundColor: visible ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0)' }}
         onClick={handleClose}
       />
@@ -153,7 +153,7 @@ function CommentSheet({ postId, currentUserId, onClose }) {
           <button
             onClick={handleSend}
             disabled={sending || !newComment.trim()}
-            className="text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-all"
+            className="text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-[opacity,color,scale]"
             style={{ color: newComment.trim() && !sending ? 'rgb(34 197 94)' : 'rgb(156 163 175)' }}
           >
             {sending ? (
