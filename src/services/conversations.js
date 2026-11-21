@@ -2,23 +2,12 @@ import { supabase } from '../lib/supabase'
 
 export const CONVERSATIONS_PAGE_SIZE = 20
 
-// { "<conversation id>": <epoch milliseconds when you last read it> }. Chat writes it to
-// localStorage every time a conversation is opened. Anything unreadable counts as "never read".
-export function readChatLastRead() {
-  try {
-    if (typeof localStorage === 'undefined') return {}
-    const parsed = JSON.parse(localStorage.getItem('chatLastRead') || '{}')
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
-  } catch {
-    return {}
-  }
-}
-
 // One page of the conversation list through the get_conversations RPC
-// (supabase/migrations/005_pagination.sql): the other user, the last message, its date and the
+// (supabase/migrations/008_read_receipts.sql): the other user, the last message, its date and the
 // unread count, most recently active first. Blocked users are excluded in SQL.
 //
-// The unread count is computed in SQL from the chatLastRead map, which is sent with every request.
+// unread_count is the real number of messages the other user sent me with read_at IS NULL, so it
+// comes from the server and is the same on every device.
 // `cursor` is { last_message_at, id } of the last conversation of the previous page, or null.
 // last_message_at is passed back as the original ISO string, never a Date, so no microseconds
 // are lost.
@@ -30,7 +19,6 @@ export async function fetchConversationsPage(cursor) {
     p_limit: CONVERSATIONS_PAGE_SIZE,
     p_cursor_last_message_at: cursor?.last_message_at ?? null,
     p_cursor_id: cursor?.id ?? null,
-    p_last_read: readChatLastRead(),
   })
   if (error) throw error
 
@@ -41,4 +29,13 @@ export async function fetchConversationsPage(cursor) {
     conversations,
     nextCursor: hasMore && last ? { last_message_at: last.last_message_at, id: last.id } : undefined,
   }
+}
+
+// How many messages I have not read in all my conversations (the badge on the Messages tab).
+// A single count in SQL (get_unread_messages_count); conversations with users I blocked are not
+// counted, the same rule the list uses.
+export async function fetchUnreadMessagesCount() {
+  const { data, error } = await supabase.rpc('get_unread_messages_count')
+  if (error) throw error
+  return Number(data) || 0
 }

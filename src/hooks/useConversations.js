@@ -22,11 +22,10 @@ export function useConversations(userId) {
     initialPageParam: null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: !!userId,
-    // The unread counts depend on localStorage, which Chat updates without telling react-query, so
-    // this list is never trusted as fresh: it refetches every time the screen opens and every
-    // time the tab becomes visible again (as before), showing the cached list first.
-    staleTime: 0,
-    refetchOnMount: 'always',
+    // The unread counts come from the server. The Realtime channel in Layout and Chat (when it
+    // marks a conversation as read) mark this list as stale, so it is trusted for 60s. It still
+    // refetches when the tab becomes visible again, showing the cached list first.
+    staleTime: 60_000,
     refetchOnWindowFocus: true,
   })
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
@@ -7,7 +7,8 @@ import { usePullToRefresh, PullIndicator } from '../hooks/usePullToRefresh'
 import { useNavDirection } from '../hooks/useNavDirection'
 import { useUser } from '../lib/UserContext.jsx'
 import { useQueryClient } from '@tanstack/react-query'
-import { invalidateConversations } from '../lib/conversationsCache'
+import { invalidateConversations, invalidateUnreadMessages } from '../lib/conversationsCache'
+import { useUnreadMessagesCount } from '../hooks/useUnreadMessages'
 import { useNotificationsRealtime } from '../hooks/useNotificationsRealtime'
 
 function Layout({ children }) {
@@ -35,53 +36,45 @@ function Layout({ children }) {
     prevPathRef.current = location.pathname
   }, [location.pathname])
 
-  const [unreadCount, setUnreadCount] = useState(0)
+  // Unread messages for the badge, counted in SQL (get_unread_messages_count). The Realtime
+  // channel below and Chat (when it marks a conversation as read) keep it up to date.
+  const unreadCount = useUnreadMessagesCount(user?.id)
 
-  const fetchUnread = useCallback(async () => {
-    if (!user) return
-
-    const { data: convs } = await supabase.from('conversations').select('id').or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-    const convIds = convs?.map(c => c.id) ?? []
-    if (convIds.length === 0) { setUnreadCount(0); return }
-
-    const { data: allMsgs } = await supabase.from('messages')
-      .select('id, conversation_id, sender_id, created_at')
-      .in('conversation_id', convIds)
-      .not('sender_id', 'eq', user.id)
-      .order('created_at', { ascending: false }).limit(500)
-
-    const lastRead = JSON.parse(localStorage.getItem('chatLastRead') || '{}')
-    let count = 0
-    for (const msg of allMsgs ?? []) {
-      const lastReadAt = lastRead[msg.conversation_id]
-      if (!lastReadAt || new Date(msg.created_at).getTime() > lastReadAt) count++
-    }
-    setUnreadCount(count)
-  }, [user])
-
-  // Re-fetch unread count on every navigation (so badge updates after viewing a chat)
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on navigation; replaced by unread_count() RPC in phase 6
-  useEffect(() => { fetchUnread() }, [location, fetchUnread])
-
-  // Real-time subscription for new messages
+  // Real-time subscription for messages: INSERT (a message arrived or was sent) and UPDATE (a
+  // conversation was marked as read, or a message was edited). RLS only sends this channel the
+  // messages of my conversations. Marking a conversation with N messages sends N UPDATE events at
+  // once, so the invalidations are grouped in a single 250ms timer: every invalidateQueries
+  // cancels the fetch in flight and starts another, so one per event would refetch N times.
+  // A message I sent only changes the list; a message from the other user, or an UPDATE, can also
+  // change the unread count.
   useEffect(() => {
     if (!user) return
+    const userId = user.id
+    let timer = null
+    let countStale = false
+
+    const flush = () => {
+      timer = null
+      invalidateConversations(queryClient)
+      if (countStale) invalidateUnreadMessages(queryClient)
+      countStale = false
+    }
+    const schedule = (alsoCount) => {
+      if (alsoCount) countStale = true
+      if (!timer) timer = setTimeout(flush, 250)
+    }
+
     const channel = supabase.channel('unread-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        // Any new message, mine or not, changes the order, the last message and the unread counts
-        // of the conversation list. RLS only sends this channel the messages of my conversations.
-        invalidateConversations(queryClient)
-        if (payload.new.sender_id !== user.id) {
-          const lr = JSON.parse(localStorage.getItem('chatLastRead') || '{}')
-          const lastReadAt = lr[payload.new.conversation_id]
-          if (!lastReadAt || new Date(payload.new.created_at).getTime() > lastReadAt) {
-            setUnreadCount(prev => prev + 1)
-          }
-        }
-      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => schedule(payload.new.sender_id !== userId))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' },
+        () => schedule(true))
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
   }, [user, queryClient])
 
   return (
