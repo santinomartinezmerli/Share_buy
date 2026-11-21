@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useUser } from '../lib/UserContext.jsx'
 import EmptyState from '../components/EmptyState'
+import { formatPrice } from '../lib/formatPrice'
 import { motion } from 'framer-motion'
 import { useExplore } from '../hooks/useExplore'
 import { useExploreLike } from '../hooks/useExploreLike'
@@ -226,7 +227,7 @@ function Explore() {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl bg-green-50 dark:bg-green-900/20">🛍️</div>
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-2 pb-2 pt-10 text-left">
                     <button
                       onClick={e => { e.stopPropagation(); navigate(`/user/${post.profiles?.id ?? post.user_id}`) }}
                       className="flex items-center gap-1 mb-0.5"
@@ -238,8 +239,12 @@ function Explore() {
                       </div>
                       <span className="text-white text-[10px] font-medium truncate">{post.profiles?.username}</span>
                     </button>
-                    <p className="text-white text-xs font-medium truncate">{post.product}</p>
-                    {post.price && <p className="text-green-300 text-xs font-medium">${post.price}</p>}
+                    <p className="text-white text-xs font-medium truncate drop-shadow-sm">{post.product}</p>
+                    {post.price && (
+                      <span className="mt-1 inline-block rounded-full bg-green-500 px-2 py-0.5 text-[11px] font-semibold text-white">
+                        ${formatPrice(post.price)}
+                      </span>
+                    )}
                   </div>
                 </motion.button>
 
