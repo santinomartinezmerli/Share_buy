@@ -6,12 +6,11 @@ import { SkeletonProfile } from '../components/Skeleton'
 import { motion } from 'framer-motion'
 import { useProfile } from '../hooks/useProfile'
 import { useProfilePosts } from '../hooks/useProfilePosts'
+import { useSavedPosts } from '../hooks/useSavedPosts'
 
 function Profile() {
   const navigate = useNavigate()
   const { userId } = useUser()
-  const [savedPosts, setSavedPosts] = useState([])
-  const [savedLoading, setSavedLoading] = useState(true)
   const [tab, setTab] = useState('posts')
   const sentinelRef = useRef(null)
 
@@ -22,51 +21,28 @@ function Profile() {
   const followersCount = summary?.followersCount ?? 0
   const followingCount = summary?.followingCount ?? 0
 
-  // Saved posts are still loaded here, on every visit; a later step moves them to a paginated
-  // query. They no longer hold back the rest of the page.
-  useEffect(() => {
-    if (!userId) return
-    let cancelled = false
-    const fetchSaved = async () => {
-      const { data: savedData } = await supabase
-        .from('saves')
-        .select('post_id')
-        .eq('user_id', userId)
+  // Saved posts: requested only once the "Guardados" tab is opened, 24 per page.
+  const saved = useSavedPosts(userId, tab === 'saved')
 
-      let saved = []
-      if (savedData && savedData.length > 0) {
-        const savedIds = savedData.map(s => s.post_id)
-        const { data: sp } = await supabase
-          .from('posts')
-          .select('*, profiles(username, avatar_url)')
-          .in('id', savedIds)
-          .order('created_at', { ascending: false })
-        saved = sp ?? []
-      }
-      if (!cancelled) {
-        setSavedPosts(saved)
-        setSavedLoading(false)
-      }
-    }
-    fetchSaved()
-    return () => { cancelled = true }
-  }, [userId])
-
-  // Infinite scroll on the posts tab: same observer as the feed.
+  // Infinite scroll on whichever tab is open: same observer as the feed.
+  const list = tab === 'posts'
+    ? { hasMore, loadingMore, loadMore }
+    : { hasMore: saved.hasMore, loadingMore: saved.loadingMore, loadMore: saved.loadMore }
+  const { hasMore: listHasMore, loadingMore: listLoadingMore, loadMore: listLoadMore } = list
   useEffect(() => {
-    if (tab !== 'posts' || !sentinelRef.current) return
+    if (!sentinelRef.current) return
     const obs = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore && !loadingMore) {
-        loadMore()
+      if (entries[0].isIntersecting && listHasMore && !listLoadingMore) {
+        listLoadMore()
       }
     }, { threshold: 0.1 })
     obs.observe(sentinelRef.current)
     return () => obs.disconnect()
-  }, [tab, loadMore, hasMore, loadingMore])
+  }, [tab, listLoadMore, listHasMore, listLoadingMore])
 
   if (summaryPending || postsLoading) return <SkeletonProfile />
 
-  const grid = (tab === 'posts' ? posts : savedPosts)
+  const grid = (tab === 'posts' ? posts : saved.posts)
 
   return (
     <div className="flex flex-col dark:bg-gray-900 dark:text-white">
@@ -133,7 +109,7 @@ function Profile() {
         </button>
       </div>
 
-      {tab === 'saved' && savedLoading ? (
+      {tab === 'saved' && saved.loading ? (
         <div className="grid grid-cols-3 gap-1 p-1">
           {[1, 2, 3, 4, 5, 6].map(i => (
             <div key={i} className="aspect-square bg-gray-100 dark:bg-gray-800 animate-pulse rounded-sm" />
@@ -163,8 +139,8 @@ function Profile() {
             </motion.button>
           ))}
         </div>
-        {tab === 'posts' && <div ref={sentinelRef} className="h-1" />}
-        {tab === 'posts' && loadingMore && (
+        <div ref={sentinelRef} className="h-1" />
+        {listLoadingMore && (
           <div className="py-4 text-center text-xs text-gray-400">Cargando más...</div>
         )}
         </>

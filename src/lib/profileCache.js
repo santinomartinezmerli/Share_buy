@@ -14,3 +14,11 @@ export const invalidateProfiles = (queryClient) =>
 // Mark every cached posts grid as stale (a post was published, edited or deleted).
 export const invalidateProfilePosts = (queryClient) =>
   queryClient.invalidateQueries({ queryKey: ['profilePosts'] })
+
+// The posts a user saved ("Guardados" tab), one entry per user.
+export const savedPostsKey = (userId) => ['savedPosts', userId]
+
+// Mark every cached saved list as stale: a post was saved or unsaved, or deleted (deleting a
+// post also removes it from everybody's saved list).
+export const invalidateSavedPosts = (queryClient) =>
+  queryClient.invalidateQueries({ queryKey: ['savedPosts'] })

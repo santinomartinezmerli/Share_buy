@@ -8,6 +8,7 @@ import { SkeletonPostDetail } from '../components/Skeleton'
 import { useQueryClient } from '@tanstack/react-query'
 import { invalidateFeed } from '../lib/feedCache'
 import { invalidatePostChanges } from '../lib/queryInvalidation'
+import { invalidateSavedPosts } from '../lib/profileCache'
 
 function PostDetail() {
   const { postId } = useParams()
@@ -170,6 +171,7 @@ function PostDetail() {
       if (error) setSaved(false)
     }
     invalidateFeed(queryClient)
+    invalidateSavedPosts(queryClient)
   }
 
   if (loading) return <SkeletonPostDetail />

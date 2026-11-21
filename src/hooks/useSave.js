@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { addSave, removeSave } from '../services/engagement'
 import { feedKey, patchFeedPost } from '../lib/feedCache'
+import { invalidateSavedPosts } from '../lib/profileCache'
 
 // Same idea as useLike: state comes from the cached post and is patched optimistically.
 export function useSave(post, userId) {
@@ -17,6 +18,8 @@ export function useSave(post, userId) {
       setSaved(!wasSaved)
     },
     onError: (_err, { wasSaved }) => setSaved(wasSaved),
+    // The "Guardados" tab of the profile lists what is saved, so it is now out of date.
+    onSettled: () => invalidateSavedPosts(queryClient),
   })
 
   const toggleSave = useCallback((e) => {
