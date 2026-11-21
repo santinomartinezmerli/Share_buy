@@ -9,6 +9,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { invalidateFeed } from '../lib/feedCache'
 import { invalidatePostChanges } from '../lib/queryInvalidation'
 import { invalidateSavedPosts } from '../lib/profileCache'
+import { patchPostEverywhere } from '../lib/postCache'
+import { setPostForSale } from '../services/posts'
 import { useComments } from '../hooks/useComments'
 
 function PostDetail() {
@@ -26,6 +28,7 @@ function PostDetail() {
     send: sendComment, editComment, deleteById: deleteCommentById,
   } = useComments(postId, currentUserId)
   const [post, setPost] = useState(location.state?.post ?? null)
+  const [togglingSale, setTogglingSale] = useState(false)
   const [reviews, setReviews] = useState([])
   const [newComment, setNewComment] = useState('')
   const [loading, setLoading] = useState(true)
@@ -86,6 +89,32 @@ function PostDetail() {
 
     const saved = await sendComment(text)
     if (!saved) setNewComment(text)
+  }
+
+  // Put the post on sale / take it off. The change shows at once, in the screen and in every
+  // cached list (feed, Explore, profile, saved), and only the changed field is merged: the post
+  // keeps its profiles (author name and avatar) and everything else. If the update fails, the
+  // previous value is put back everywhere.
+  const applyForSale = (value) => {
+    setPost((current) => (current ? { ...current, for_sale: value } : current))
+    patchPostEverywhere(queryClient, post.id, { for_sale: value })
+  }
+
+  const handleToggleForSale = async () => {
+    if (togglingSale) return
+    const previous = !!post.for_sale
+    const next = !previous
+    setTogglingSale(true)
+    applyForSale(next)
+    try {
+      const changed = await setPostForSale(post.id, next)
+      if (changed.for_sale !== next) applyForSale(changed.for_sale)
+    } catch (err) {
+      console.error('Changing for_sale failed:', err)
+      applyForSale(previous)
+    } finally {
+      setTogglingSale(false)
+    }
   }
 
   const handleDeletePost = async () => {
@@ -314,12 +343,7 @@ function PostDetail() {
           </div>
 
           {isOwner && (
-            <button onClick={async () => {
-              const { data } = await supabase
-                .from('posts').update({ for_sale: !post.for_sale })
-                .eq('id', post.id).select().single()
-              if (data) { setPost(data); invalidateFeed(queryClient) }
-            }} className={`mt-3 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors bg-white dark:bg-white ${post.for_sale ? 'border-red-200 text-red-500' : 'border-green-200 text-green-600'}`}>
+            <button onClick={handleToggleForSale} disabled={togglingSale} className={`mt-3 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors bg-white dark:bg-white ${post.for_sale ? 'border-red-200 text-red-500' : 'border-green-200 text-green-600'}`}>
               {post.for_sale ? 'Quitar de venta' : 'Poner en venta'}
             </button>
           )}
