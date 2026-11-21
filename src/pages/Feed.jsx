@@ -35,6 +35,22 @@ function PostSkeleton() {
   )
 }
 
+// Same box as the real stories row (padding, 56px circle, gap, 15px label, border), so the feed does
+// not jump down when the stories appear. Stories come from the loaded posts, so they cannot be known
+// before the feed arrives.
+function StoriesSkeleton() {
+  return (
+    <div className="flex gap-3 px-4 py-3 overflow-x-auto border-b border-gray-100 animate-pulse">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
+          <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700" />
+          <div className="h-[15px] w-10 rounded bg-gray-200 dark:bg-gray-700" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function Feed() {
   const { userId } = useUser()
   const { posts, loading, loadingMore, hasMore, loadMore } = useFeed(userId)
@@ -88,8 +104,8 @@ function Feed() {
         </div>
       </div>
 
-      {storyGroups.length > 0 && (
-        <div className="flex gap-3 px-4 py-3 overflow-x-auto border-b border-gray-100">
+      {loading ? <StoriesSkeleton key="stories-loading" /> : storyGroups.length > 0 && (
+        <div key="stories" className="flex gap-3 px-4 py-3 overflow-x-auto border-b border-gray-100">
           {storyGroups.map((group, index) => (
             <button key={group.userId} onClick={() => setActiveStoryGroup(index)} className="flex flex-col items-center gap-1 flex-shrink-0">
               <div className="w-14 h-14 rounded-full p-0.5 border-2 border-green-500">
@@ -109,13 +125,13 @@ function Feed() {
       )}
 
       {loading ? (
-        <div>
+        <div key="feed-loading">
           <PostSkeleton />
           <PostSkeleton />
           <PostSkeleton />
         </div>
       ) : posts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 px-6 gap-3 text-gray-400">
+        <div key="feed-empty" className="flex flex-col items-center justify-center py-20 px-6 gap-3 text-gray-400">
           <div className="w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -125,7 +141,7 @@ function Feed() {
           <p className="text-xs text-gray-400 text-center">¡Seguí a otros usuarios para ver sus compras acá!</p>
         </div>
       ) : (
-        <div>
+        <div key="feed-posts">
           {posts.map((post, i) => (
             <div key={post.id} className="stagger-enter" style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}>
               {/* The first two cards are above the fold: their image loads eagerly (see PostCard). */}
