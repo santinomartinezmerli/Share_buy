@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { summarizePosts } from '../lib/profileSummary'
 
 export const PROFILE_POSTS_PAGE_SIZE = 24
 
@@ -91,3 +92,17 @@ export const blockUser = (viewerId, targetId) =>
 
 export const unblockUser = (viewerId, targetId) =>
   run(supabase.from('blocked_users').delete().eq('blocker_id', viewerId).eq('blocked_id', targetId))
+
+// Where a user bought and what, from columns that already exist on posts: one light request with
+// two columns per post (capped at 1000, newest first). The profile strip turns it into "stores" and
+// "top category"; the post count comes from the grid's own count.
+export async function fetchProfileStats(profileId) {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('where_bought, category')
+    .eq('user_id', profileId)
+    .order('created_at', { ascending: false })
+    .limit(1000)
+  if (error) throw error
+  return summarizePosts(data)
+}

@@ -6,6 +6,7 @@ import { SkeletonProfile } from '../components/Skeleton'
 import { motion } from 'framer-motion'
 import { useProfile } from '../hooks/useProfile'
 import { useProfilePosts } from '../hooks/useProfilePosts'
+import ProfileSummaryStrip from '../components/ProfileSummaryStrip'
 import { useProfileRelationship } from '../hooks/useProfileRelationship'
 
 function UserProfile() {
@@ -132,6 +133,8 @@ function UserProfile() {
           </div>
         )}
       </div>
+
+      <ProfileSummaryStrip profileId={userId} total={total} />
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-2 text-gray-400">

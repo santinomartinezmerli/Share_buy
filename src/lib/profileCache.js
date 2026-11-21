@@ -22,3 +22,7 @@ export const savedPostsKey = (userId) => ['savedPosts', userId]
 // post also removes it from everybody's saved list).
 export const invalidateSavedPosts = (queryClient) =>
   queryClient.invalidateQueries({ queryKey: ['savedPosts'] })
+
+// Stores and top category of a profile. It starts with 'profilePosts' on purpose: every place that
+// marks the posts grids as stale (a post was published, edited or deleted) also refreshes this.
+export const profileStatsKey = (profileId) => ['profilePosts', profileId, 'stats']

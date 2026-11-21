@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { useProfile } from '../hooks/useProfile'
 import { useProfilePosts } from '../hooks/useProfilePosts'
 import { useSavedPosts } from '../hooks/useSavedPosts'
+import ProfileSummaryStrip from '../components/ProfileSummaryStrip'
 
 function Profile() {
   const navigate = useNavigate()
@@ -86,6 +87,8 @@ function Profile() {
           </button>
         </div>
       </div>
+
+      <ProfileSummaryStrip profileId={userId} total={total} />
 
       <div className="flex border-b border-gray-100 dark:border-gray-700">
         <button onClick={() => setTab('posts')} className={`flex-1 py-3 text-xs font-medium text-center border-b-2 transition-colors ${tab === 'posts' ? 'border-green-500 text-green-500' : 'border-transparent text-gray-400 dark:text-gray-500'}`}>
