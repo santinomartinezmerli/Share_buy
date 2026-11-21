@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { compressImage } from '../lib/compressImage'
+import { uploadImage } from '../lib/storageUpload'
 import { useChatMessages, useChatPartner } from '../hooks/useChatMessages'
 import { useMarkConversationRead } from '../hooks/useMarkConversationRead'
 import Avatar from '../components/Avatar'
@@ -124,24 +125,20 @@ function Chat() {
           return
         }
 
-        const ext = file.name.split('.').pop()
-        const filename = `chat-${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-        const { error: uploadError } = await supabase.storage
-          .from('chat')
-          .upload(filename, file)
-
-        if (uploadError) {
-          setUploadError(uploadError.message)
-          setPendingPhotos(photos.slice(i))
+        let url
+        try {
+          url = (await uploadImage('chat', userId, file)).url
+        } catch (err) {
+          setUploadError(err.message)
+          setPendingPhotos(photos.slice(i)) // give back what was not sent yet
           setNewMessage(text)
           setUploading(false)
           return
         }
 
-        const { data: urlData } = supabase.storage.from('chat').getPublicUrl(filename)
         await supabase.from('messages').insert({
           conversation_id: conversationId, sender_id: userId,
-          content: urlData.publicUrl,
+          content: url,
         })
       }
 

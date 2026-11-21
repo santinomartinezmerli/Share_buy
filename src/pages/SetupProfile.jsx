@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
+import { uploadImage } from '../lib/storageUpload'
 import { compressImage, MAX_AVATAR_SIZE } from '../lib/compressImage'
 
 function SetupProfile() {
@@ -66,14 +67,14 @@ function SetupProfile() {
         return
       }
 
-      const ext = file.name.split('.').pop()
-      const filename = `avatar-${userId}-${Date.now()}.${ext}`
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filename, file)
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filename)
-        avatar = urlData.publicUrl
+      // Before, a failed upload was ignored and the profile was saved without the photo, so the
+      // person never knew. Now the problem is shown and the form keeps what was typed.
+      try {
+        avatar = (await uploadImage('avatars', userId, file)).url
+      } catch (err) {
+        setError(err.message)
+        setLoading(false)
+        return
       }
     }
 

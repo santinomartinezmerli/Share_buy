@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
+import { uploadImage } from '../lib/storageUpload'
 import { compressImage, MAX_AVATAR_SIZE } from '../lib/compressImage'
 import { SkeletonForm } from '../components/Skeleton'
 import { useQueryClient } from '@tanstack/react-query'
@@ -70,20 +71,13 @@ function EditProfile() {
         return
       }
 
-      const ext = file.name.split('.').pop()
-      const filename = `avatar-${userId}-${Date.now()}.${ext}`
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filename, file, { upsert: true })
-
-      if (uploadError) {
-        setError(`Error al subir: ${uploadError.message}`)
+      try {
+        newAvatarUrl = (await uploadImage('avatars', userId, file)).url
+      } catch (err) {
+        setError(err.message)
         setSaving(false)
         return
       }
-
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filename)
-      newAvatarUrl = urlData.publicUrl
     }
 
     const { error: updateError } = await supabase

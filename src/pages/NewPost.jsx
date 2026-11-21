@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { compressImage } from '../lib/compressImage'
+import { uploadImage } from '../lib/storageUpload'
 import { useQueryClient } from '@tanstack/react-query'
 import { invalidatePostChanges } from '../lib/queryInvalidation'
 import { REVIEW_REMINDER_DAYS } from '../lib/constants'
@@ -61,24 +62,14 @@ function NewPost() {
     const uploadedUrls = []
 
     for (const file of filesToUpload) {
-      const ext = file.name.split('.').pop()
-      const filename = `${userId}-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error: uploadError } = await supabase.storage
-        .from('posts')
-        .upload(filename, file)
-
-      if (uploadError) {
-        console.error(uploadError)
-        setError('No pudimos subir las fotos. Revisá tu conexión e intentá de nuevo.')
+      try {
+        const { url } = await uploadImage('posts', userId, file)
+        uploadedUrls.push(url)
+      } catch (err) {
+        setError(err.message)
         setLoading(false)
         return
       }
-
-      const { data: urlData } = supabase.storage
-        .from('posts')
-        .getPublicUrl(filename)
-
-      uploadedUrls.push(urlData.publicUrl)
     }
 
     const { error } = await supabase.from('posts').insert({
