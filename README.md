@@ -30,7 +30,7 @@
 - **Likes & Comments** — real-time interactions powered by Supabase
 - **Follow System** — follow users and build your own feed
 - **Direct Messages** — real-time DMs via Supabase Realtime channels
-- **Notifications** — get notified on likes, comments, follows and more
+- **Notifications** — likes, comments and new followers arrive in real time, with an unread badge on the bell; a reminder to write a review shows up 30 days after you publish a purchase
 - **Bookmarks** — save posts to revisit later
 - **Explore & Search** — discover users and purchases
 - **User Profiles** — grid view of all your purchases, followers/following count
@@ -62,7 +62,7 @@ posts          → id, user_id, images[], brand, price, rating, caption
 likes          → user_id, post_id
 comments       → id, user_id, post_id, content
 follows        → follower_id, following_id
-notifications  → id, user_id, type, from_user_id, post_id
+notifications  → id, user_id, actor_id, type (follow | like | comment), post_id, comment_id, preview, created_at, read_at
 messages       → id, sender_id, receiver_id, content, channel_id
 stories        → id, user_id, post_id, expires_at
 bookmarks      → user_id, post_id
@@ -143,7 +143,7 @@ src/
 - [x] UserContext + custom hooks for scalability
 - [ ] TanStack Query for server state management
 - [ ] Push notifications (Web Push API)
-- [ ] Purchase review reminders
+- [x] Purchase review reminders (30 days after publishing)
 - [ ] Trending posts / explore algorithm
 - [ ] Price history tracking
 
