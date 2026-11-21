@@ -8,6 +8,7 @@ import { useNavDirection } from '../hooks/useNavDirection'
 import { useUser } from '../lib/UserContext.jsx'
 import { useQueryClient } from '@tanstack/react-query'
 import { invalidateConversations } from '../lib/conversationsCache'
+import { useNotificationsRealtime } from '../hooks/useNotificationsRealtime'
 
 function Layout({ children }) {
   const location = useLocation()
@@ -18,6 +19,7 @@ function Layout({ children }) {
   const { dark, toggle } = useDarkMode()
   const { user } = useUser()
   const queryClient = useQueryClient()
+  useNotificationsRealtime(user?.id)
   const direction = useNavDirection()
   const scrollMap = useRef({})
   const prevPathRef = useRef(location.pathname)
