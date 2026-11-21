@@ -1,6 +1,7 @@
 import { invalidateFeed } from './feedCache'
 import { invalidateExplore } from './exploreCache'
 import { invalidateProfilePosts, invalidateProfiles, invalidateSavedPosts } from './profileCache'
+import { invalidateFollowLists } from './followListCache'
 
 // Each helper is named after what happened and marks stale every cached list that shows it.
 // Lists on screen refetch; the others refetch the next time they are shown, still showing the
@@ -17,16 +18,19 @@ export const invalidatePostChanges = (queryClient) => {
 }
 
 // Someone's name, avatar or bio changed: feed and Explore show it on every post, and the
-// profile headers show it too.
+// profile headers and the follower lists show it too.
 export const invalidateProfileChanges = (queryClient) => {
   invalidateFeed(queryClient)
   invalidateExplore(queryClient)
   invalidateProfiles(queryClient)
+  invalidateFollowLists(queryClient)
 }
 
-// Someone followed or unfollowed: the feed shows other posts and the profile headers show
-// different follower and following counts.
+// Someone followed or unfollowed: the feed shows other posts, the profile headers show
+// different follower and following counts and the follower and following lists have one more
+// or one fewer row.
 export const invalidateFollowChanges = (queryClient) => {
   invalidateFeed(queryClient)
   invalidateProfiles(queryClient)
+  invalidateFollowLists(queryClient)
 }

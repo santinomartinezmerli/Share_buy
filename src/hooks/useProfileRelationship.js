@@ -4,6 +4,7 @@ import { followUser, unfollowUser, blockUser, unblockUser } from '../services/pr
 import { profileKey, invalidateProfiles } from '../lib/profileCache'
 import { invalidateFeed } from '../lib/feedCache'
 import { invalidateExplore } from '../lib/exploreCache'
+import { invalidateFollowChanges } from '../lib/queryInvalidation'
 
 // Follow and block buttons of someone else's profile. Both flip instantly in the cached
 // header (the profile you are looking at) and go back if the request fails.
@@ -29,11 +30,9 @@ export function useProfileRelationship(profileId, viewerId) {
         following: wasFollowing,
         followersCount: o.followersCount + (wasFollowing ? 1 : -1),
       })),
-    // Following changes whose posts the feed shows and the counts of other cached profiles.
-    onSettled: () => {
-      invalidateFeed(queryClient)
-      invalidateProfiles(queryClient)
-    },
+    // Following changes whose posts the feed shows, the counts of other cached profiles and
+    // the follower and following lists.
+    onSettled: () => invalidateFollowChanges(queryClient),
   })
 
   const block = useMutation({
