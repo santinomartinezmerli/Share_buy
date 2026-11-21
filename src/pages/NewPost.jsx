@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { compressImage } from '../lib/compressImage'
 import { useQueryClient } from '@tanstack/react-query'
-import { invalidateFeed } from '../lib/feedCache'
+import { invalidatePostChanges } from '../lib/queryInvalidation'
 
 function NewPost() {
   const navigate = useNavigate()
@@ -98,7 +98,7 @@ function NewPost() {
       setError('No pudimos publicar tu compra. Intentá de nuevo.')
       return
     }
-    invalidateFeed(queryClient)
+    invalidatePostChanges(queryClient)
     navigate('/feed')
   }
 

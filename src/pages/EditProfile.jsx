@@ -5,7 +5,7 @@ import { useUser } from '../lib/UserContext.jsx'
 import { compressImage, MAX_AVATAR_SIZE } from '../lib/compressImage'
 import { SkeletonForm } from '../components/Skeleton'
 import { useQueryClient } from '@tanstack/react-query'
-import { invalidateFeed } from '../lib/feedCache'
+import { invalidateProfileChanges } from '../lib/queryInvalidation'
 
 function EditProfile() {
   const navigate = useNavigate()
@@ -106,7 +106,7 @@ function EditProfile() {
       return
     }
 
-    invalidateFeed(queryClient)
+    invalidateProfileChanges(queryClient)
     navigate('/profile')
   }
 

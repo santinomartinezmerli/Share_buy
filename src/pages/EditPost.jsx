@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import ImageCarousel from '../components/ImageCarousel'
 import { SkeletonForm } from '../components/Skeleton'
 import { useQueryClient } from '@tanstack/react-query'
-import { invalidateFeed } from '../lib/feedCache'
+import { invalidatePostChanges } from '../lib/queryInvalidation'
 
 function EditPost() {
   const { postId } = useParams()
@@ -71,7 +71,7 @@ function EditPost() {
 
     setSaving(false)
     if (error) { console.error(error); return }
-    invalidateFeed(queryClient)
+    invalidatePostChanges(queryClient)
     navigate(`/post/${postId}`, { replace: true })
   }
 

@@ -7,6 +7,7 @@ import Avatar from '../components/Avatar'
 import { SkeletonPostDetail } from '../components/Skeleton'
 import { useQueryClient } from '@tanstack/react-query'
 import { invalidateFeed } from '../lib/feedCache'
+import { invalidatePostChanges } from '../lib/queryInvalidation'
 
 function PostDetail() {
   const { postId } = useParams()
@@ -104,7 +105,7 @@ function PostDetail() {
   const handleDeletePost = async () => {
     setDeleting(true)
     await supabase.from('posts').delete().eq('id', postId)
-    invalidateFeed(queryClient)
+    invalidatePostChanges(queryClient)
     navigate('/profile', { replace: true })
   }
 

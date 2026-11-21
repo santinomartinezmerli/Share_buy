@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { SkeletonList } from '../components/Skeleton'
 import { useQueryClient } from '@tanstack/react-query'
-import { invalidateFeed } from '../lib/feedCache'
+import { invalidateFollowChanges } from '../lib/queryInvalidation'
 
 function FollowList() {
   const { userId } = useParams()
@@ -69,7 +69,7 @@ function FollowList() {
       })
       if (error) setFollowingMap(prev => ({ ...prev, [targetId]: false }))
     }
-    invalidateFeed(queryClient)
+    invalidateFollowChanges(queryClient)
   }
 
   return (
