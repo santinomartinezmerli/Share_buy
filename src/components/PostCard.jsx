@@ -4,6 +4,7 @@ import ImageCarousel from './ImageCarousel'
 import Avatar from './Avatar'
 import { useLike } from '../hooks/useLike'
 import { useSave } from '../hooks/useSave'
+import { formatPrice } from '../lib/formatPrice'
 
 // priority: the card is above the fold, so its first image skips lazy loading and is fetched with
 // high priority (it is the LCP element of the feed). The rest keep loading="lazy".
@@ -18,17 +19,17 @@ function PostCard({ post, currentUserId, onCommentClick, priority = false }) {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm mx-4 mb-5 overflow-hidden">
-      {/* Header */}
+      {/* Header: avatar, user and a small grey date */}
       <div className="flex items-center gap-3 px-4 pt-3 pb-2">
         <button onClick={() => navigate(`/user/${post.user_id}`)} className="flex-shrink-0">
           <Avatar url={post.profiles?.avatar_url} username={post.profiles?.username} size="md" />
         </button>
         <div className="flex-1 min-w-0">
-          <button onClick={() => navigate(`/user/${post.user_id}`)} className="text-sm font-semibold text-gray-900 dark:text-white truncate block">
+          <button onClick={() => navigate(`/user/${post.user_id}`)} className="text-sm font-semibold text-gray-900 dark:text-white truncate block max-w-full text-left leading-tight">
             {post.profiles?.username ?? 'usuario'}
           </button>
+          <span className="text-[11px] text-gray-400 dark:text-gray-500 leading-tight block">{new Date(post.created_at).toLocaleDateString('es-AR')}</span>
         </div>
-        <span className="text-xs text-gray-400 flex-shrink-0">{new Date(post.created_at).toLocaleDateString('es-AR')}</span>
       </div>
 
       {/* Image. The carousel case is a div with role=button, not a <button>, because the carousel has
@@ -100,24 +101,26 @@ function PostCard({ post, currentUserId, onCommentClick, priority = false }) {
         </div>
       )}
 
-      {/* Caption */}
-      <div className="px-4 pt-0.5 pb-3">
-        <p className="text-sm text-gray-900 dark:text-white">
-          <button onClick={() => navigate(`/user/${post.user_id}`)} className="font-semibold hover:underline">
-            {post.profiles?.username ?? 'usuario'}
-          </button>
-          {' '}{post.product}
-          {post.price && <span className="text-green-600 dark:text-green-400 font-medium"> ${post.price}</span>}
-        </p>
-        {post.caption && <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{post.caption}</p>}
+      {/* One strong line: title and price. The place of purchase is a clear tag under it. */}
+      <div className="px-4 pt-1.5 pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[15px] font-semibold text-gray-900 dark:text-white truncate">{post.product}</p>
+          {post.price && (
+            <span className="flex-shrink-0 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-semibold px-2.5 py-0.5">
+              ${formatPrice(post.price)}
+            </span>
+          )}
+        </div>
         {post.where_bought && (
-          <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <span className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700/60 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            {post.where_bought}
-          </p>
+            <span className="truncate">Comprado en {post.where_bought}</span>
+          </span>
         )}
+        {post.caption && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">{post.caption}</p>}
       </div>
     </div>
   )

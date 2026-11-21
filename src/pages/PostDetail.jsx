@@ -13,6 +13,7 @@ import { patchPostEverywhere } from '../lib/postCache'
 import { setPostForSale } from '../services/posts'
 import { useComments } from '../hooks/useComments'
 import { usePostDetailLike } from '../hooks/usePostDetailLike'
+import { formatPrice } from '../lib/formatPrice'
 
 function PostDetail() {
   const { postId } = useParams()
@@ -356,9 +357,9 @@ function PostDetail() {
           </div>
           {post.caption && <p className="text-sm text-gray-500 dark:text-gray-300 mb-2">{post.caption}</p>}
           <div className="flex items-center gap-3 flex-wrap">
-            {post.price && <span className="text-green-500 font-medium text-sm">${post.price}</span>}
+            {post.price && <span className="text-green-500 font-medium text-sm">${formatPrice(post.price)}</span>}
             {post.for_sale && post.sale_price && (
-              <span className="text-orange-500 font-medium text-sm">Venta: ${post.sale_price}</span>
+              <span className="text-orange-500 font-medium text-sm">Venta: ${formatPrice(post.sale_price)}</span>
             )}
             {post.where_bought && (
               <span className="text-xs text-gray-400 flex items-center gap-1">
