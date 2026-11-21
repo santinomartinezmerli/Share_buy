@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext.jsx'
 import { compressImage } from '../lib/compressImage'
 import { useChatMessages, useChatPartner } from '../hooks/useChatMessages'
+import { useMarkConversationRead } from '../hooks/useMarkConversationRead'
 import Avatar from '../components/Avatar'
 import { SkeletonChat } from '../components/Skeleton'
 
@@ -20,12 +21,10 @@ function Chat() {
   const [deletingMsgId, setDeletingMsgId] = useState(null)
   const [typing, setTyping] = useState(false)
   const [otherTyping, setOtherTyping] = useState(false)
-  const [, setReadMap] = useState({})
   const fileInputRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const scrollRef = useRef(null)      // the message list (a column-reverse scroller: scrollTop 0 is the bottom)
   const sentinelRef = useRef(null)    // last in the DOM = top of the screen: loads older messages
-  const markedReadRef = useRef(null)
 
   // Latest 30 messages, newest first, with older ones loaded as you scroll up. The messages of the
   // other user come through Realtime (addIncoming); mine are shown optimistically (send).
@@ -36,32 +35,9 @@ function Chat() {
   const { otherUser, loading: partnerLoading } = useChatPartner(conversationId, userId)
   const loading = messagesLoading || partnerLoading
 
-  // Mark conversation as read immediately on mount (not just after async fetch)
-  useEffect(() => {
-    const prev = JSON.parse(localStorage.getItem('chatLastRead') || '{}')
-    prev[conversationId] = Date.now()
-    localStorage.setItem('chatLastRead', JSON.stringify(prev))
-  }, [conversationId])
-
-  // Mark the unread messages of the loaded page as read in the DB, once per conversation, as
-  // before (but only the latest page is loaded now, not the whole history).
-  // KNOWN ISSUE: this UPDATE is on messages the OTHER user sent, and the current RLS policy only
-  // lets the sender update their own messages, so it matches no row and read receipts do not work
-  // yet. It needs the mark_conversation_read RPC planned for a later phase.
-  useEffect(() => {
-    if (!userId || messagesLoading || markedReadRef.current === conversationId) return
-    markedReadRef.current = conversationId
-    const unreadIds = messages
-      .filter(m => m.sender_id !== userId && !m.read_at && !String(m.id).startsWith('temp-'))
-      .map(m => m.id)
-    if (unreadIds.length === 0) return
-    supabase.from('messages')
-      .update({ read_at: new Date().toISOString() })
-      .in('id', unreadIds)
-      .then(({ error }) => {
-        if (error) console.warn('read_at update failed (column may not exist yet)')
-      })
-  }, [conversationId, userId, messagesLoading, messages])
+  // Mark what the other user sent as read (mark_conversation_read RPC): when the chat opens, and
+  // whenever a message arrives while it is open and visible. See useMarkConversationRead.
+  useMarkConversationRead(conversationId, userId, messages, !messagesLoading)
 
   // Load older messages when the top of the list comes into view. The list is a column-reverse
   // scroller, so the sentinel (last in the DOM) is at the top and the scroll position is measured
@@ -89,21 +65,12 @@ function Chat() {
         schema: 'public',
         table: 'messages',
         filter: `conversation_id=eq.${conversationId}`
-      }, async (payload) => {
+      }, (payload) => {
         const msg = payload.new
         // Goes through the cache: a message already there (or my own pending one) is never duplicated.
         addIncoming(msg)
         // My own messages (the echo of a text, or a photo) bring the view back to the bottom.
         if (msg.sender_id === userId && scrollRef.current) scrollRef.current.scrollTop = 0
-        // Auto-mark as read
-        if (msg.sender_id !== userId) {
-          await supabase.from('messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id)
-          setReadMap(prev => ({ ...prev, [msg.id]: true }))
-        }
-        // Keep localStorage timestamp fresh for badge clearance
-        const prev = JSON.parse(localStorage.getItem('chatLastRead') || '{}')
-        prev[conversationId] = Date.now()
-        localStorage.setItem('chatLastRead', JSON.stringify(prev))
         setOtherTyping(false)
       })
       .on('broadcast', { event: 'typing' }, ({ payload }) => {

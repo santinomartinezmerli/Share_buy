@@ -93,3 +93,16 @@ export async function deleteMessage(messageId) {
   if (error) throw error
   if (!data?.length) throw new Error('Message was not deleted (no matching row or no permission)')
 }
+
+// Mark as read what the other user sent me in this conversation, through the
+// mark_conversation_read RPC (supabase/migrations/008_read_receipts.sql). It is the only way to
+// set read_at: a direct UPDATE of that column is not allowed. The function itself checks that I am
+// part of the conversation and only touches the other user's unread messages. Returns how many
+// messages it marked.
+export async function markConversationRead(conversationId) {
+  const { data, error } = await supabase.rpc('mark_conversation_read', {
+    p_conversation_id: conversationId,
+  })
+  if (error) throw error
+  return Number(data) || 0
+}

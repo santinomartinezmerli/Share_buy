@@ -120,3 +120,16 @@ export function flattenMessages(data) {
   const saved = all.filter((m) => !isTempMessage(m)).sort(compareNewestFirst)
   return [...temps, ...saved]
 }
+
+// A conversation was marked as read: set read_at on those messages (by id) in every loaded page.
+// Messages that are not in the list, or already have a read_at, are left as they are.
+export function markMessagesRead(queryClient, conversationId, messageIds, readAt) {
+  const ids = new Set(messageIds)
+  if (ids.size === 0) return
+  mapPages(queryClient, conversationId, (pages) =>
+    pages.map((page) => ({
+      ...page,
+      messages: page.messages.map((m) => (ids.has(m.id) && !m.read_at ? { ...m, read_at: readAt } : m)),
+    }))
+  )
+}
