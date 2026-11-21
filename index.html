@@ -10,6 +10,10 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.json" />
+    <!-- Open the connection to Supabase early. Vite fills in the URL from VITE_SUPABASE_URL at build
+         time. Two links because fetch (auth, feed) and images use separate connection pools. -->
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" />
     <title>ShareBuy</title>
   </head>
   <body>
