@@ -5,6 +5,7 @@ import { useUser } from '../lib/UserContext.jsx'
 import { compressImage } from '../lib/compressImage'
 import { useQueryClient } from '@tanstack/react-query'
 import { invalidatePostChanges } from '../lib/queryInvalidation'
+import { REVIEW_REMINDER_DAYS } from '../lib/constants'
 
 function NewPost() {
   const navigate = useNavigate()
@@ -272,7 +273,7 @@ function NewPost() {
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-xs text-green-700">Te avisamos en 30 días para escribir una review</p>
+          <p className="text-xs text-green-700">Te avisamos en {REVIEW_REMINDER_DAYS} días para escribir una review</p>
         </div>
 
       </div>
