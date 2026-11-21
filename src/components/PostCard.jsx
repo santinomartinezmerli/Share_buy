@@ -74,7 +74,7 @@ function PostCard({ post, currentUserId, onCommentClick, priority = false }) {
       <div className="flex items-center px-4 pt-3 pb-1">
         <div className="flex items-center gap-1">
           <button onClick={toggleLike} className="p-1 -ml-1 active:scale-95 transition-transform">
-            <svg xmlns="http://www.w3.org/2000/svg" className={`w-[22px] h-[22px] transition-all ${liked ? 'text-red-500 fill-red-500 scale-110' : 'text-gray-400 dark:text-gray-500'}`} viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className={`w-[22px] h-[22px] transition-[color,fill,scale] ${liked ? 'text-red-500 fill-red-500 scale-110' : 'text-gray-400 dark:text-gray-500'}`} viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           </button>
