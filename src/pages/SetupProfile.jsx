@@ -32,7 +32,7 @@ function SetupProfile() {
       setSuggestedUsers((profiles ?? []).filter(p => p.id !== userId))
     }
     fetchData()
-  }, [userId])
+  }, [userId, user?.email])
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0]

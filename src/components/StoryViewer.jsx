@@ -26,6 +26,9 @@ function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
       })
     }, 100)
     return () => clearInterval(interval)
+    // Intentionally not depending on goNext: it is recreated on every render, and adding it would
+    // restart the 100ms timer each time and change how the story progress behaves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paused, current, group.userId])
 
   const goNext = () => {

@@ -41,11 +41,15 @@ function PostDetail() {
   const [editReviewContent, setEditReviewContent] = useState('')
   const [copied, setCopied] = useState(false)
   const commentsEndRef = useRef(null)
+  // The load effect only needs to know whether a post is already there (it came with the navigation
+  // state) when it runs, not to re-run when the post changes: it reads it from a ref.
+  const postRef = useRef(post)
+  useEffect(() => { postRef.current = post })
 
   useEffect(() => {
     if (!currentUserId) return
     const fetch = async () => {
-      if (!post) {
+      if (!postRef.current) {
         const { data: postData } = await supabase
           .from('posts')
           .select('*, profiles(username, avatar_url)')
