@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 
-function ImageCarousel({ images, brand, className = '' }) {
+// priority: only the first slide loads eagerly with high priority; the others are off screen.
+function ImageCarousel({ images, brand, className = '', priority = false }) {
   const [current, setCurrent] = useState(0)
   const [dragX, setDragX] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -112,7 +113,7 @@ function ImageCarousel({ images, brand, className = '' }) {
         {urls.map((url, i) => (
           <div key={i} className="w-full flex-shrink-0">
             <div className="aspect-square bg-gray-50 relative overflow-hidden">
-              <img src={url} className="w-full h-full object-cover" alt="" draggable={false} loading="lazy" decoding="async" />
+              <img src={url} className="w-full h-full object-cover" alt="" draggable={false} loading={priority && i === 0 ? 'eager' : 'lazy'} fetchPriority={priority && i === 0 ? 'high' : undefined} decoding="async" />
             </div>
           </div>
         ))}

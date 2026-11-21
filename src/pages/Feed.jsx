@@ -128,7 +128,8 @@ function Feed() {
         <div>
           {posts.map((post, i) => (
             <div key={post.id} className="stagger-enter" style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}>
-              <PostCard post={post} currentUserId={userId} onCommentClick={setCommentPostId} />
+              {/* The first two cards are above the fold: their image loads eagerly (see PostCard). */}
+              <PostCard post={post} currentUserId={userId} onCommentClick={setCommentPostId} priority={i < 2} />
             </div>
           ))}
           <div ref={sentinelRef} className="h-1" />
