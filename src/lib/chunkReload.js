@@ -11,6 +11,10 @@ const CHUNK_ERROR_PATTERNS = [
   /Failed to fetch dynamically imported module/i, // Chrome, Edge
   /error loading dynamically imported module/i, // Firefox
   /Importing a module script failed/i, // Safari
+  // A missing chunk that the server answered with index.html (an SPA rewrite, or an old deploy):
+  /Expected a JavaScript.*module script.*MIME type/i, // Chrome, in the console and some builds
+  /is not a valid JavaScript MIME type/i, // Safari: "'text/html' is not a valid JavaScript MIME type."
+  /MIME type of "text\/html"/i,
   /Unable to preload CSS/i, // Vite, when a lazy chunk's CSS is missing
   /Loading chunk [\w-]+ failed/i,
 ]

@@ -6,6 +6,9 @@ describe('isChunkLoadError', () => {
     'Failed to fetch dynamically imported module: https://x/assets/Chat-abc.js',
     'error loading dynamically imported module',
     'Importing a module script failed.',
+    'Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html". Strict MIME type checking is enforced for module scripts per HTML spec.',
+    "'text/html' is not a valid JavaScript MIME type.",
+    'Unable to preload CSS for /assets/Chat-abc.css',
   ])('detects "%s"', (message) => {
     expect(isChunkLoadError(new TypeError(message))).toBe(true)
   })
