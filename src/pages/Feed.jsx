@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useUser } from '../lib/UserContext'
 import { useFeed } from '../hooks/useFeed'
 import { useStories } from '../hooks/useStories'
+import { useUnreadNotificationsCount } from '../hooks/useNotifications'
 import StoryViewer from '../components/StoryViewer'
 import PostCard from '../components/PostCard'
 import CommentSheet from '../components/CommentSheet'
@@ -38,6 +39,7 @@ function Feed() {
   const { userId } = useUser()
   const { posts, loading, loadingMore, hasMore, loadMore } = useFeed(userId)
   const storyGroups = useStories(posts)
+  const unreadNotifications = useUnreadNotificationsCount(userId)
   const [activeStoryGroup, setActiveStoryGroup] = useState(null)
   const [commentPostId, setCommentPostId] = useState(null)
   const sentinelRef = useRef(null)
@@ -68,10 +70,15 @@ function Feed() {
         </h1>
         <div className="flex items-center gap-4 text-gray-400">
           <button onClick={handleSignOut} className="text-xs text-red-400">Salir</button>
-          <button onClick={() => navigate('/notifications')} className="text-gray-400">
+          <button onClick={() => navigate('/notifications')} className="relative text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.437L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
+            {unreadNotifications > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center">
+                {unreadNotifications > 9 ? '9+' : unreadNotifications}
+              </span>
+            )}
           </button>
           <button onClick={() => navigate('/messages')} className="text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

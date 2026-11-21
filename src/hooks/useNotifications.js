@@ -94,7 +94,12 @@ export function useMarkNotificationsRead(userId, unreadShown) {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    if (!userId || unreadShown === 0) return
+    if (!userId) return
+    if (unreadShown === 0) {
+      // Nothing unread on screen: make sure the badge agrees (it may be a stale count).
+      queryClient.invalidateQueries({ queryKey: unreadNotificationsKey(userId) })
+      return
+    }
     let cancelled = false
     markAllNotificationsRead(userId)
       .then(() => { if (!cancelled) clearUnreadNotifications(queryClient, userId) })
