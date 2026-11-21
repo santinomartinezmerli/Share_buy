@@ -11,6 +11,21 @@ export function invalidateNotifications(queryClient, userId) {
   queryClient.invalidateQueries({ queryKey: unreadNotificationsKey(userId) })
 }
 
+// A notification was deleted (someone unliked, unfollowed or deleted a comment). Realtime cannot
+// filter DELETE events by user_id, and the payload only has the id, so this event reaches
+// everybody who listens. It matters only if that id is in a page of the list that is loaded;
+// then the list and the badge are stale. Any other id is somebody else's, or one that is not
+// loaded, and is ignored. Returns true when it invalidated.
+export function handleNotificationDeleted(queryClient, userId, payload) {
+  const id = payload?.old?.id
+  if (!id) return false
+  const cached = queryClient.getQueryData(notificationsKey(userId))
+  const isLoaded = !!cached?.pages?.some((page) => page.notifications.some((n) => n.id === id))
+  if (!isLoaded) return false
+  invalidateNotifications(queryClient, userId)
+  return true
+}
+
 // Everything was marked as read: the badge goes to 0 right away, without waiting for a request,
 // and is confirmed by the refetch that follows.
 export function clearUnreadNotifications(queryClient, userId) {
