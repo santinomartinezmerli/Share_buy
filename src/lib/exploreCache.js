@@ -17,3 +17,9 @@ export function patchExplorePost(queryClient, postId, patch) {
     }
   })
 }
+
+// Mark every cached Explore list as stale: a post was published, edited or deleted, the
+// author changed their name or avatar, or someone was blocked. Lists on screen refetch now;
+// the others refetch the next time they are shown, still showing the cached posts first.
+export const invalidateExplore = (queryClient) =>
+  queryClient.invalidateQueries({ queryKey: ['explore'] })
