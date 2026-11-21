@@ -7,8 +7,11 @@ import { UserProvider } from './lib/UserContext.jsx'
 import { queryClient } from './lib/queryClient'
 import ErrorBoundary from './components/ErrorBoundary'
 import { listenForPreloadErrors } from './lib/chunkReload'
+import { prefetchFeed } from './lib/prefetchFeed'
 
 listenForPreloadErrors()
+// Start the feed request now, in parallel with React mounting (see lib/prefetchFeed.js).
+prefetchFeed(queryClient)
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

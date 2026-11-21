@@ -1,29 +1,12 @@
 import { useMemo, useCallback, useEffect } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchFeedPage } from '../services/feed'
 import { feedKey } from '../lib/feedCache'
+import { feedQueryOptions } from '../lib/feedQuery'
 
 export function useFeed(userId) {
   const queryClient = useQueryClient()
 
-  const query = useInfiniteQuery({
-    queryKey: feedKey(userId),
-    queryFn: async ({ pageParam }) => {
-      try {
-        return await fetchFeedPage(pageParam)
-      } catch (err) {
-        console.error('Feed request failed:', err)
-        throw err
-      }
-    },
-    initialPageParam: null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    enabled: !!userId,
-    // Within 60s coming back to the feed costs no request. Anything that changes the feed
-    // calls invalidateFeed() (see lib/feedCache.js), which forces a refetch on the next
-    // visit; older data is shown instantly and refreshed in the background.
-    staleTime: 60_000,
-  })
+  const query = useInfiniteQuery({ ...feedQueryOptions(userId), enabled: !!userId })
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } = query
 
