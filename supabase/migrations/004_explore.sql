@@ -227,39 +227,39 @@ GRANT EXECUTE ON FUNCTION public.get_explore_brands(int)
 --    BEGIN and ROLLBACK as ONE script (set_config with `true` only lasts for
 --    the current transaction):
 --
-      BEGIN;
-      SELECT set_config('request.jwt.claims',
-        '{"sub":"722fe43a-9d8c-42a2-a0eb-d7f0ffe644b7","role":"authenticated"}', true);
-      SET LOCAL ROLE authenticated;
-
-      -- Price parsing. Expect: 1500, 1500.50, 12.5, 12.50, 1500, NULL
-      SELECT parse_price('1.500'), parse_price('1.500,50'),
-             parse_price('12,50'), parse_price('12.50'),
-             parse_price('$ 1500'), parse_price('abc');
-
-      -- Page 1, no filters (null cursor).
-      SELECT id, product, brand, price, created_at::text AS created_at,
-             liked_by_me, has_more
-      FROM get_explore(5);
-
-      -- Page 2: paste created_at and id of the LAST row of page 1.
-      SELECT id, product, created_at::text AS created_at, has_more
-      FROM get_explore(5, '<LAST_CREATED_AT>'::timestamptz,
-                       '<LAST_ID>'::uuid);
-
-      -- Filters: search, category and price range.
-      SELECT id, product, brand, category, price
-      FROM get_explore(10, p_search => 'a');
-      SELECT id, product, category, price
-      FROM get_explore(10, p_category => 'Ropa',
-                       p_min_price => 1000, p_max_price => 5000);
-
-      -- Brand dropdown.
-      SELECT * FROM get_explore_brands(10);
-
-      -- Plan and rows touched.
-        EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM get_explore(24);
-        ROLLBACK;
+--      BEGIN;
+--      SELECT set_config('request.jwt.claims',
+--        '{"sub":"722fe43a-9d8c-42a2-a0eb-d7f0ffe644b7","role":"authenticated"}', true);
+--      SET LOCAL ROLE authenticated;
+--
+--      -- Price parsing. Expect: 1500, 1500.50, 12.5, 12.50, 1500, NULL
+--      SELECT parse_price('1.500'), parse_price('1.500,50'),
+--             parse_price('12,50'), parse_price('12.50'),
+--             parse_price('$ 1500'), parse_price('abc');
+--
+--      -- Page 1, no filters (null cursor).
+--      SELECT id, product, brand, price, created_at::text AS created_at,
+--             liked_by_me, has_more
+--      FROM get_explore(5);
+--
+--      -- Page 2: paste created_at and id of the LAST row of page 1.
+--      SELECT id, product, created_at::text AS created_at, has_more
+--      FROM get_explore(5, '<LAST_CREATED_AT>'::timestamptz,
+--                       '<LAST_ID>'::uuid);
+--
+--      -- Filters: search, category and price range.
+--      SELECT id, product, brand, category, price
+--      FROM get_explore(10, p_search => 'a');
+--      SELECT id, product, category, price
+--      FROM get_explore(10, p_category => 'Ropa',
+--                       p_min_price => 1000, p_max_price => 5000);
+--
+--      -- Brand dropdown.
+--      SELECT * FROM get_explore_brands(10);
+--
+--      -- Plan and rows touched.
+--        EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM get_explore(24);
+--        ROLLBACK;
 --
 --    anon must be blocked (expect "permission denied"):
 --
