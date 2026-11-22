@@ -40,10 +40,10 @@ describe('Feed stories row', () => {
     expect(screen.getAllByTestId('post')).toHaveLength(2)
   })
 
-  it('hides the row when the only story is your own', () => {
+  it('shows the row when the only story is your own', () => {
     feed = loaded([post('1', ME), post('2', 'ana', 48)]) // ana's post is older than 24 h
     renderFeed()
-    expect(screen.queryByTestId('stories-row')).toBeNull()
+    expect(screen.getByTestId('stories-row')).toBeTruthy()
     expect(screen.getAllByTestId('post')).toHaveLength(2)
   })
 

@@ -41,8 +41,8 @@ function Feed() {
   const storyGroups = useStories(posts)
   // Stories are decided from the same data, and in the same render, as the posts: while the feed
   // loads no space is reserved for the row (the post skeletons are replaced by the real posts in one
-  // go), and it never shows up empty. A row with only your own story is not worth the space either.
-  const showStories = !loading && storyGroups.some((group) => group.userId !== userId)
+  // go), and it never shows up empty. Any group counts, including your own.
+  const showStories = !loading && storyGroups.length > 0
   // The bell badge is not needed to paint the feed: it is requested once the feed has painted.
   const afterFeedPaint = useDeferredStart(userId, { waitForFeed: true })
   const unreadNotifications = useUnreadNotificationsCount(userId, afterFeedPaint)
