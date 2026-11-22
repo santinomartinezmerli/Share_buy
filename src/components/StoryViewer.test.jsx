@@ -73,3 +73,54 @@ describe('StoryViewer tap zones', () => {
     expect(getByText('product-a1')).toBeTruthy()
   })
 })
+
+describe('StoryViewer progress bar', () => {
+  beforeEach(() => { vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers(); cleanup() })
+
+  // The bar of the current story is the first one that is not full.
+  const bars = (container) => [...container.querySelectorAll('.origin-left')]
+  const scale = (bar) => Number(/scaleX\(([\d.]+)\)/.exec(bar.style.transform)[1])
+
+  it('fills smoothly (many small steps, not jumps of 2 %)', () => {
+    const { container } = setup()
+    const seen = new Set()
+    for (let i = 0; i < 100; i++) {
+      act(() => { vi.advanceTimersByTime(16) })
+      seen.add(scale(bars(container)[0]))
+    }
+    expect(seen.size).toBeGreaterThan(50)
+    const ratio = scale(bars(container)[0])
+    expect(ratio).toBeGreaterThan(0.25)
+    expect(ratio).toBeLessThan(0.4) // about 1.6 s of 5 s
+  })
+
+  it('moves to the next story when the bar is full', () => {
+    const { getByText } = setup()
+    act(() => { vi.advanceTimersByTime(5200) })
+    expect(getByText('product-a2')).toBeTruthy()
+  })
+
+  it('stops while pressed and continues from the same point', () => {
+    const { container, getByTestId } = setup()
+    act(() => { vi.advanceTimersByTime(2000) })
+    const before = scale(bars(container)[0])
+    fireEvent.pointerDown(getByTestId('story-area'), { clientX: 250, clientY: 100, button: 0 })
+    act(() => { vi.advanceTimersByTime(3000) })
+    expect(scale(bars(container)[0])).toBeCloseTo(before, 5)
+    fireEvent.pointerUp(window, { clientX: 250, clientY: 100 })
+    act(() => { vi.advanceTimersByTime(1000) })
+    expect(scale(bars(container)[0])).toBeGreaterThan(before + 0.15)
+  })
+
+  it('a new group starts on its first story even if the old index is past its end', () => {
+    const three = { userId: 'c', username: 'cleo', stories: [story('c1'), story('c2'), story('c3')] }
+    const props = { activeGroupIndex: 0, onClose: vi.fn(), onNextGroup: vi.fn(), onPrevGroup: vi.fn() }
+    const { rerender, getByText } = render(<MemoryRouter><StoryViewer {...props} storyGroups={[three, groups[1]]} /></MemoryRouter>)
+    act(() => { vi.advanceTimersByTime(5200) }) // c1 -> c2 (state updates are batched per act)
+    act(() => { vi.advanceTimersByTime(5200) }) // c2 -> c3
+    expect(getByText('product-c3')).toBeTruthy()
+    rerender(<MemoryRouter><StoryViewer {...props} storyGroups={[three, groups[1]]} activeGroupIndex={1} /></MemoryRouter>)
+    expect(getByText('product-b1')).toBeTruthy()
+  })
+})

@@ -1,51 +1,74 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePressGestures } from '../hooks/usePressGestures'
+
+// How long each story stays on screen.
+const STORY_MS = 5000
 
 function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
   const navigate = useNavigate()
   const group = storyGroups[activeGroupIndex]
   const [current, setCurrent] = useState(0)
-  const [progress, setProgress] = useState(0)
   const [paused, setPaused] = useState(false)
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset story position when the group changes; StoryViewer behaviour must not change
+  // When the group changes (next/previous group) start again from its first story. Done while
+  // rendering, not in an effect: with an effect the first render of the new group would still use the
+  // old index, which can be past the end of a shorter group.
+  const [shownGroupId, setShownGroupId] = useState(group.userId)
+  if (shownGroupId !== group.userId) {
+    setShownGroupId(group.userId)
     setCurrent(0)
-    setProgress(0)
-  }, [group.userId])
+  }
 
-  useEffect(() => {
-    if (paused) return
-    const interval = setInterval(() => {
-      setProgress(p => {
-        if (p >= 100) {
-          goNext()
-          return 0
-        }
-        return p + 2
-      })
-    }, 100)
-    return () => clearInterval(interval)
-    // Intentionally not depending on goNext: it is recreated on every render, and adding it would
-    // restart the 100ms timer each time and change how the story progress behaves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paused, current, group.userId])
+  // The progress bar does not live in React state: a requestAnimationFrame loop writes the width
+  // (scaleX, so it runs on the compositor) straight into the bar of the current story. That gives a
+  // smooth 60 fps fill with no re-render per frame. elapsedRef keeps the time already played, so
+  // pausing (press and hold) and resuming continues from the same point.
+  const barRef = useRef(null)
+  const elapsedRef = useRef(0)
+  const paintBar = (ratio) => {
+    if (barRef.current) barRef.current.style.transform = `scaleX(${ratio})`
+  }
+  const restartBar = () => {
+    elapsedRef.current = 0
+    paintBar(0)
+  }
 
   const goNext = () => {
-    if (current < group.stories.length - 1) {
-      setCurrent(c => c + 1)
-      setProgress(0)
-    } else {
-      onNextGroup()
-    }
+    if (current < group.stories.length - 1) setCurrent(c => c + 1)
+    else onNextGroup()
   }
+  // The timer calls the latest goNext without restarting every time it is recreated.
+  const goNextRef = useRef(goNext)
+  useEffect(() => { goNextRef.current = goNext })
 
   // First story: "previous" starts it again. After the first story it goes back one.
   const goPrev = () => {
-    setProgress(0)
     if (current > 0) setCurrent(c => c - 1)
+    else restartBar()
   }
+
+  // A new story starts with an empty bar.
+  useEffect(() => { restartBar() }, [current, group.userId]) // eslint-disable-line react-hooks/exhaustive-deps -- restartBar only touches refs
+
+  useEffect(() => {
+    if (paused) return
+    let frame
+    let last = performance.now()
+    const tick = (now) => {
+      elapsedRef.current += now - last
+      last = now
+      const ratio = Math.min(elapsedRef.current / STORY_MS, 1)
+      paintBar(ratio)
+      if (ratio >= 1) {
+        goNextRef.current()
+        return
+      }
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [paused, current, group.userId])
 
   // Left third = previous, the rest = next. Pressing and holding pauses; releasing after a hold
   // only resumes (see usePressGestures), it never advances.
@@ -55,7 +78,8 @@ function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
     onTap: (zone) => (zone === 'left' ? goPrev() : goNext()),
   })
 
-  const story = group.stories[current]
+  // Clamped: for the one render in which the group has just changed, `current` is still the old index.
+  const story = group.stories[Math.min(current, group.stories.length - 1)]
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex items-center justify-center select-none">
@@ -66,11 +90,9 @@ function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
           {group.stories.map((_, i) => (
             <div key={i} className="flex-1 h-0.5 bg-white/30 rounded-full overflow-hidden">
               <div
-                className="h-full bg-white"
-                style={{
-                  width: i < current ? '100%' : i === current ? `${progress}%` : '0%',
-                  transition: i === current ? 'none' : undefined
-                }}
+                ref={i === current ? barRef : undefined}
+                className="h-full w-full origin-left bg-white will-change-transform"
+                style={{ transform: i < current ? 'scaleX(1)' : 'scaleX(0)' }}
               />
             </div>
           ))}
