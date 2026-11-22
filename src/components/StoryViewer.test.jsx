@@ -148,3 +148,52 @@ describe('StoryViewer and pull-to-refresh', () => {
     expect(seen).toBe(false)
   })
 })
+
+describe('StoryViewer accessibility, avatar and history', () => {
+  afterEach(cleanup)
+
+  it('focuses the close button on open and closes with Escape', () => {
+    const { props, getByLabelText } = setup()
+    expect(document.activeElement).toBe(getByLabelText('Cerrar historias'))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(props.onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('labels the close and profile buttons', () => {
+    const { getByLabelText } = setup()
+    expect(getByLabelText('Cerrar historias')).toBeTruthy()
+    expect(getByLabelText('Ver perfil de ana')).toBeTruthy()
+  })
+
+  it('shows the real avatar when there is one and the initials otherwise or on error', () => {
+    const withAvatar = [{ ...groups[0], avatarUrl: 'https://img/ana.webp' }, groups[1]]
+    const props = { activeGroupIndex: 0, onClose: vi.fn(), onNextGroup: vi.fn() }
+    const view = render(<MemoryRouter><StoryViewer {...props} storyGroups={withAvatar} /></MemoryRouter>)
+    const profile = view.getByLabelText('Ver perfil de ana')
+    const img = profile.querySelector('img')
+    expect(img.getAttribute('src')).toBe('https://img/ana.webp')
+    fireEvent.error(img)
+    expect(profile.querySelector('img')).toBeNull()
+    expect(profile.textContent).toContain('AN')
+  })
+
+  it('shows the initials when the user has no avatar', () => {
+    const { getByLabelText } = setup()
+    expect(getByLabelText('Ver perfil de ana').textContent).toContain('AN')
+  })
+
+  it('arrow keys move between stories', () => {
+    const { getByText } = setup()
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(getByText('product-a2')).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(getByText('product-a1')).toBeTruthy()
+  })
+
+  it('blocks the body scroll while open', () => {
+    const view = setup()
+    expect(document.body.style.overflow).toBe('hidden')
+    view.unmount()
+    expect(document.body.style.overflow).not.toBe('hidden')
+  })
+})

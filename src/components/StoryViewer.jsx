@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, useReducedMotion, useTransform } from 'framer-motion'
 import { usePressGestures } from '../hooks/usePressGestures'
+import { useOverlayHistory } from '../hooks/useOverlayHistory'
 import { lockOverlay } from '../lib/overlayLock'
 import { formatPrice } from '../lib/formatPrice'
 
@@ -13,6 +14,18 @@ const CLOSE_VELOCITY = 600
 
 // eslint-disable-next-line react-refresh/only-export-components -- tiny pure helper next to its only user, exported for its test
 export const shouldCloseOnSwipe = (offsetY, velocityY) => offsetY > CLOSE_DISTANCE || velocityY > CLOSE_VELOCITY
+
+// The real photo of the user, or their initials if there is none or it fails to load.
+function StoryAvatar({ url, username }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-medium shrink-0 overflow-hidden">
+      {url && !failed
+        ? <img src={url} alt="" className="w-full h-full object-cover" onError={() => setFailed(true)} />
+        : username?.slice(0, 2).toUpperCase()}
+    </div>
+  )
+}
 
 function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
   const navigate = useNavigate()
@@ -92,6 +105,29 @@ function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
     onTap: (zone) => (zone === 'left' ? goPrev() : goNext()),
   })
 
+  // The browser Back button closes the viewer (it has its own history entry, see useOverlayHistory).
+  const { leaveThen } = useOverlayHistory(onClose)
+
+  // Keyboard: Escape closes, arrows move between stories. The close button gets the focus when the
+  // viewer opens and the previously focused element gets it back when it closes.
+  const closeButtonRef = useRef(null)
+  const actionsRef = useRef({})
+  useEffect(() => { actionsRef.current = { goNext, goPrev, onClose } })
+  useEffect(() => {
+    const previouslyFocused = document.activeElement
+    closeButtonRef.current?.focus()
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') actionsRef.current.onClose()
+      else if (e.key === 'ArrowRight') actionsRef.current.goNext()
+      else if (e.key === 'ArrowLeft') actionsRef.current.goPrev()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      previouslyFocused?.focus?.()
+    }
+  }, [])
+
   // While the viewer is open, pull-to-refresh is off (see Layout), so a swipe down cannot refresh the feed.
   useEffect(() => lockOverlay(), [])
 
@@ -108,6 +144,9 @@ function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
 
   return (
     <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Historias de ${group.username}`}
       className="fixed inset-0 z-50 flex items-center justify-center select-none"
       initial={enterExit}
       animate={{ opacity: 1, scale: 1 }}
@@ -173,21 +212,22 @@ function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
 
         {/* Profile & close buttons: siblings of the content, so the gesture area never sees their presses */}
         <button
-          onClick={(e) => { e.stopPropagation(); navigate(`/user/${group.userId}`) }}
+          onClick={(e) => { e.stopPropagation(); leaveThen(() => navigate(`/user/${group.userId}`)) }}
+          aria-label={`Ver perfil de ${group.username}`}
           className="absolute top-7 left-3 z-50 flex items-center gap-2"
           style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}
         >
-          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-medium shrink-0">
-            {group.username?.slice(0, 2).toUpperCase()}
-          </div>
+          <StoryAvatar url={group.avatarUrl} username={group.username} />
           <span className="text-white text-sm font-medium">{group.username}</span>
         </button>
 
         <button
+          ref={closeButtonRef}
           onClick={(e) => { e.stopPropagation(); onClose() }}
+          aria-label="Cerrar historias"
           className="absolute top-7 right-3 z-50 text-white p-1"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>

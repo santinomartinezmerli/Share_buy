@@ -24,4 +24,16 @@ describe('overlayLock', () => {
     act(() => b())
     expect(result.current).toBe(false)
   })
+
+  it('blocks the body scroll while open and restores the previous value', () => {
+    document.body.style.overflow = 'auto'
+    let a, b
+    act(() => { a = lockOverlay(); b = lockOverlay() })
+    expect(document.body.style.overflow).toBe('hidden')
+    act(() => a())
+    expect(document.body.style.overflow).toBe('hidden')
+    act(() => b())
+    expect(document.body.style.overflow).toBe('auto')
+    document.body.style.overflow = ''
+  })
 })
