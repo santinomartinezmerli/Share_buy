@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { usePressGestures } from '../hooks/usePressGestures'
 
 function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
   const navigate = useNavigate()
@@ -40,6 +41,20 @@ function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
     }
   }
 
+  // First story: "previous" starts it again. After the first story it goes back one.
+  const goPrev = () => {
+    setProgress(0)
+    if (current > 0) setCurrent(c => c - 1)
+  }
+
+  // Left third = previous, the rest = next. Pressing and holding pauses; releasing after a hold
+  // only resumes (see usePressGestures), it never advances.
+  const gestures = usePressGestures({
+    onPress: () => setPaused(true),
+    onRelease: () => setPaused(false),
+    onTap: (zone) => (zone === 'left' ? goPrev() : goNext()),
+  })
+
   const story = group.stories[current]
 
   return (
@@ -64,10 +79,8 @@ function StoryViewer({ storyGroups, activeGroupIndex, onClose, onNextGroup }) {
         {/* Story content with tap-to-advance */}
         <div
           className="absolute inset-0 flex items-center justify-center bg-gray-900"
-          onClick={(e) => { e.stopPropagation(); goNext() }}
-          onPointerDown={() => setPaused(true)}
-          onPointerUp={() => setPaused(false)}
-          onPointerLeave={() => setPaused(false)}
+          data-testid="story-area"
+          {...gestures}
         >
           {story.image_url ? (
             <img
