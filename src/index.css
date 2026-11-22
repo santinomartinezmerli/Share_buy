@@ -26,6 +26,14 @@
   }
 }
 
+/* Hides the scrollbar of a horizontal strip (the category chips) but keeps it scrollable. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }

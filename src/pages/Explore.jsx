@@ -179,7 +179,7 @@ function Explore() {
       )}
 
       {/* Categories */}
-      <div className="flex gap-2 px-4 py-3 overflow-x-auto border-b border-gray-100">
+      <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-none border-b border-gray-100">
         {CATEGORIES.map(cat => (
           <button
             key={cat}
