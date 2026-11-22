@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, fireEvent, cleanup, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import StoryViewer from './StoryViewer'
+import StoryViewer, { shouldCloseOnSwipe } from './StoryViewer'
+import { useOverlayOpen } from '../lib/overlayLock'
 
 const story = (id) => ({ id, product: `product-${id}`, image_url: `https://img/${id}.webp` })
 const groups = [
@@ -122,5 +123,28 @@ describe('StoryViewer progress bar', () => {
     expect(getByText('product-c3')).toBeTruthy()
     rerender(<MemoryRouter><StoryViewer {...props} storyGroups={[three, groups[1]]} activeGroupIndex={1} /></MemoryRouter>)
     expect(getByText('product-b1')).toBeTruthy()
+  })
+})
+
+describe('StoryViewer swipe down to close', () => {
+  it('closes past the distance or at speed, and stays open for a short slow drag', () => {
+    expect(shouldCloseOnSwipe(150, 0)).toBe(true)
+    expect(shouldCloseOnSwipe(30, 900)).toBe(true)
+    expect(shouldCloseOnSwipe(60, 100)).toBe(false)
+    expect(shouldCloseOnSwipe(-200, -900)).toBe(false) // upwards never closes
+  })
+})
+
+describe('StoryViewer and pull-to-refresh', () => {
+  afterEach(cleanup)
+
+  it('marks an overlay as open while mounted and releases it on unmount', () => {
+    let seen
+    const Probe = () => { seen = useOverlayOpen(); return null }
+    const props = { storyGroups: groups, activeGroupIndex: 0, onClose: vi.fn(), onNextGroup: vi.fn() }
+    const view = render(<MemoryRouter><Probe /><StoryViewer {...props} /></MemoryRouter>)
+    expect(seen).toBe(true)
+    view.rerender(<MemoryRouter><Probe /></MemoryRouter>)
+    expect(seen).toBe(false)
   })
 })

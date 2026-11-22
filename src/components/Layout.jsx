@@ -10,13 +10,16 @@ import { invalidateConversations, invalidateUnreadMessages } from '../lib/conver
 import { useUnreadMessagesCount } from '../hooks/useUnreadMessages'
 import { useNotificationsRealtime } from '../hooks/useNotificationsRealtime'
 import { useDeferredStart } from '../hooks/useDeferredStart'
+import { useOverlayOpen } from '../lib/overlayLock'
 
 function Layout({ children }) {
   const location = useLocation()
+  // Pull-to-refresh is off while the story viewer is open: swiping down there closes the viewer.
+  const overlayOpen = useOverlayOpen()
   const { pulling, pullDistance, THRESHOLD } = usePullToRefresh(() => {
     const fn = window.__ptrRefresh
     if (fn) { fn().catch?.(e => console.error('PTR error:', e)) } else { window.location.reload() }
-  })
+  }, { enabled: !overlayOpen })
   const { user } = useUser()
   const queryClient = useQueryClient()
   // The unread counts and the Realtime channels are not needed to paint the screen: they start

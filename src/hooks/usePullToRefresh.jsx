@@ -1,8 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 
+// enabled=false turns the gesture off (an overlay such as the story viewer is open and swipes inside
+// it must not refresh the page). The listeners stay in place and read the flag, so it does not
+// depend on the order in which events arrive or on re-subscribing.
 // eslint-disable-next-line react-refresh/only-export-components -- hook and PullIndicator live together; splitting files is out of scope
-export function usePullToRefresh(onRefresh) {
+export function usePullToRefresh(onRefresh, { enabled = true } = {}) {
   const [pulling, setPulling] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
   const startY = useRef(0)
@@ -11,6 +14,8 @@ export function usePullToRefresh(onRefresh) {
   const refreshRef = useRef(onRefresh)
   // eslint-disable-next-line react-hooks/refs -- keeps the latest callback for the touch listeners
   refreshRef.current = onRefresh
+  const enabledRef = useRef(enabled)
+  useEffect(() => { enabledRef.current = enabled })
 
   const THRESHOLD = 60
   const MAX_PULL = 100
@@ -23,7 +28,7 @@ export function usePullToRefresh(onRefresh) {
     }
 
     const onTouchStart = (e) => {
-      if (!pullingRef.current && getScrollTop() === 0) {
+      if (enabledRef.current && !pullingRef.current && getScrollTop() === 0) {
         startY.current = e.touches[0].clientY
         pullingRef.current = true
       }

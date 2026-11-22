@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
 import { useUser } from '../lib/UserContext'
 import { useFeed } from '../hooks/useFeed'
 import { useStories } from '../hooks/useStories'
@@ -157,8 +158,11 @@ function Feed() {
         />
       )}
 
+      {/* AnimatePresence lives here, not in the viewer, so the viewer can play its exit animation. */}
+      <AnimatePresence>
       {activeStoryGroup !== null && (
         <StoryViewer
+          key="story-viewer"
           storyGroups={storyGroups}
           activeGroupIndex={activeStoryGroup}
           onClose={() => setActiveStoryGroup(null)}
@@ -172,6 +176,7 @@ function Feed() {
           }}
         />
       )}
+      </AnimatePresence>
     </div>
   )
 }
