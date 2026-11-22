@@ -9,7 +9,9 @@ function Item({ value, label }) {
   )
 }
 
-// A strip under the profile header: purchases, different stores and the most frequent category.
+// A strip under the profile header: different stores and the most frequent category (the number of
+// purchases is already in the stats above, so it is not repeated). There is no spending total on
+// purpose: prices are free text without a currency, so they cannot be added up honestly.
 // It has a fixed height from the first render (a placeholder while the stats load), so the grid
 // below never moves when the numbers arrive. Rendered only for profiles with at least one post.
 function ProfileSummaryStrip({ profileId, total }) {
@@ -18,7 +20,6 @@ function ProfileSummaryStrip({ profileId, total }) {
 
   return (
     <div className="flex h-14 items-center divide-x divide-gray-100 dark:divide-gray-700 border-b border-gray-100 dark:border-gray-700 px-2">
-      <Item value={total} label={total === 1 ? 'compra' : 'compras'} />
       <Item value={data ? data.storesCount : '–'} label={data?.storesCount === 1 ? 'tienda' : 'tiendas'} />
       <Item value={data ? (data.topCategory ?? '–') : '–'} label="categoría top" />
     </div>
