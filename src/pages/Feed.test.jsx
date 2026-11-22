@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Feed from './Feed'
 
@@ -17,7 +17,7 @@ vi.mock('../hooks/useDeferredStart', () => ({ useDeferredStart: () => false }))
 vi.mock('../lib/UserContext', () => ({ useUser: () => ({ userId: 'me' }) }))
 vi.mock('../components/PostCard', () => ({ default: ({ post: p }) => <div data-testid="post">{p.product}</div> }))
 vi.mock('../components/CommentSheet', () => ({ default: () => null }))
-vi.mock('../components/StoryViewer', () => ({ default: () => null }))
+vi.mock('../components/StoryViewer', () => ({ default: () => <div data-testid="viewer" /> }))
 
 const loaded = (posts) => ({ posts, loading: false, loadingMore: false, hasMore: false, loadMore: () => {} })
 const renderFeed = () => render(<MemoryRouter><Feed /></MemoryRouter>)
@@ -51,5 +51,15 @@ describe('Feed stories row', () => {
     feed = loaded([post('1', 'ana', 72)])
     renderFeed()
     expect(screen.queryByTestId('stories-row')).toBeNull()
+  })
+
+  it('loads and shows the story viewer (a lazy chunk) when a story is opened', async () => {
+    feed = loaded([post('1', 'ana')])
+    renderFeed()
+    expect(screen.queryByTestId('viewer')).toBeNull()
+    const story = screen.getByText('u-ana')
+    fireEvent.pointerDown(story) // starts the download
+    fireEvent.click(story)
+    expect(await screen.findByTestId('viewer')).toBeTruthy()
   })
 })

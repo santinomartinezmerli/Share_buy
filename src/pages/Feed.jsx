@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { useUser } from '../lib/UserContext'
@@ -6,9 +6,14 @@ import { useFeed } from '../hooks/useFeed'
 import { useStories } from '../hooks/useStories'
 import { useUnreadNotificationsCount } from '../hooks/useNotifications'
 import { useDeferredStart } from '../hooks/useDeferredStart'
-import StoryViewer from '../components/StoryViewer'
 import PostCard from '../components/PostCard'
 import CommentSheet from '../components/CommentSheet'
+
+// The viewer is its own chunk: most visits never open a story. The first press on a story (before the
+// finger lifts) starts downloading it, so by the time the tap completes it is usually there.
+const loadStoryViewer = () => import('../components/StoryViewer')
+const StoryViewer = lazy(loadStoryViewer)
+const preloadStoryViewer = () => { loadStoryViewer().catch(() => {}) } // a failure is reported when it is really opened
 
 function PostSkeleton() {
   return (
@@ -93,7 +98,7 @@ function Feed() {
       {showStories && (
         <div key="stories" data-testid="stories-row" className="flex gap-3 px-4 py-3 overflow-x-auto border-b border-gray-100">
           {storyGroups.map((group, index) => (
-            <button key={group.userId} onClick={() => setActiveStoryGroup(index)} className="flex flex-col items-center gap-1 flex-shrink-0">
+            <button key={group.userId} onPointerDown={preloadStoryViewer} onClick={() => setActiveStoryGroup(index)} className="flex flex-col items-center gap-1 flex-shrink-0">
               <div className="w-14 h-14 rounded-full p-0.5 border-2 border-green-500">
                 <div className="w-full h-full rounded-full bg-green-100 flex items-center justify-center text-green-700 text-sm font-medium overflow-hidden">
                   {group.avatarUrl
@@ -161,8 +166,8 @@ function Feed() {
       {/* AnimatePresence lives here, not in the viewer, so the viewer can play its exit animation. */}
       <AnimatePresence>
       {activeStoryGroup !== null && (
+        <Suspense key="story-viewer" fallback={null}>
         <StoryViewer
-          key="story-viewer"
           storyGroups={storyGroups}
           activeGroupIndex={activeStoryGroup}
           onClose={() => setActiveStoryGroup(null)}
@@ -175,6 +180,7 @@ function Feed() {
             else setActiveStoryGroup(null)
           }}
         />
+        </Suspense>
       )}
       </AnimatePresence>
     </div>
